@@ -1,0 +1,25 @@
+[package]
+name = "jmc-servo-tool"
+description = "Window for the JMC servo drives: parameters, safe writes and a live monitor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "jmc-servo-tool"
+path = "src/main.rs"
+
+[dependencies]
+jmc-core.workspace = true
+eframe = "=0.37.0"
+egui_extras = { version = "=0.37.0", default-features = false }
+pulldown-cmark = { version = "0.13", default-features = false }
+rfd = "0.17"
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

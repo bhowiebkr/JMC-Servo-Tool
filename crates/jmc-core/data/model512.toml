@@ -1,0 +1,3423 @@
+# Parameter table for JMC JAND/JASD servo drives, model 512.
+#
+# The facts (codes, ranges, decimals, defaults, access and when a change applies)
+# describe the drive's register interface. The names, units, descriptions and
+# choice labels are this project's own text, in Simplified Technical English.
+#
+# Values are raw register integers: display value x 10^decimals.
+# min/max left out = the full 16-bit range. default left out = none known.
+# applies: now | power-cycle | read-only | unspecified
+# change:  any | servo-off (advisory)
+# access:  user | motor | factory (motor and factory are protected)
+# Address = group x 100 + index.
+
+[drive]
+model = 512
+name = "JMC JAND/JASD AC servo drive"
+
+# element: the XML tag of the group in the drive's 19-column parameter file.
+# Files that JMC's PC tool loads need these tags.
+
+[[group]]
+number = 0
+title = "Motor and drive"
+element = "P00_Parameter_of_motor_and_dri"
+
+[[group]]
+number = 1
+title = "Main control"
+element = "P01_main_control_parameter"
+
+[[group]]
+number = 2
+title = "Gains"
+element = "P02_Gain_parameter"
+
+[[group]]
+number = 3
+title = "Position control"
+element = "P03_Position_parameters"
+
+[[group]]
+number = 4
+title = "Speed control"
+element = "P04_Speed_parameters"
+
+[[group]]
+number = 5
+title = "Torque control"
+element = "P05_Torque_parameters"
+
+[[group]]
+number = 6
+title = "Inputs and outputs"
+element = "P06_IO_parameters"
+
+[[group]]
+number = 8
+title = "Advanced functions"
+element = "P08_advanced_function_parameter"
+
+[[group]]
+number = 10
+title = "Factory"
+element = "P10_Factory_parameter"
+
+# Text for the registers that have no function.
+[text]
+spare_name = "Spare"
+spare_brief = "Not used. The drive keeps this register for later use."
+reserved_name = "Reserved"
+reserved_brief = "Reserved. This register has no function."
+
+[[param]]
+code = "P00-00"
+name = "Motor code"
+min = 0
+max = 65535
+default = 2000
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Identifies the motor. 2000 means a motor with an absolute encoder: the drive reads P00-01 to P00-05 from the encoder. 0 means that you enter the motor data in P00-01 to P00-17. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-01"
+name = "Motor rated speed"
+unit = "rpm"
+min = 1
+max = 6000
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The rated speed of the motor. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-02"
+name = "Motor rated torque"
+unit = "N·m"
+decimals = 2
+min = 1
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The rated torque of the motor. Torque values in percent refer to this value. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-03"
+name = "Motor rated current"
+unit = "A"
+decimals = 2
+min = 1
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The rated current of the motor. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-04"
+name = "Motor rotor inertia"
+unit = "kg·cm²"
+decimals = 2
+min = 1
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The moment of inertia of the motor rotor. The load inertia ratio P01-04 refers to this value. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-05"
+name = "Motor pole pairs"
+unit = "pole pairs"
+min = 1
+max = 31
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The number of magnetic pole pairs in the motor. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-07"
+name = "Encoder type"
+min = 0
+max = 3
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The type of encoder on the motor. The factory sets this value for the matched motor."
+choices = [
+  { value = 0, label = "Incremental" },
+  { value = 1, label = "Incremental (same as 0)" },
+  { value = 2, label = "Absolute, single-turn" },
+  { value = 3, label = "Absolute, multi-turn" },
+]
+
+[[param]]
+code = "P00-08"
+name = "Wire-saving incremental encoder"
+min = 0
+max = 1
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Tells the drive if the incremental encoder is a wire-saving type, which has fewer signal wires. It applies only when P00-07 is 0 or 1."
+choices = [
+  { value = 0, label = "Standard encoder" },
+  { value = 1, label = "Wire-saving encoder" },
+]
+
+[[param]]
+code = "P00-09"
+name = "Absolute encoder protocol"
+min = 0
+max = 1
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The serial protocol of the absolute encoder. It applies only when P00-07 is 2 or 3."
+choices = [
+  { value = 0, label = "Tamagawa" },
+  { value = 1, label = "Nikon" },
+]
+
+[[param]]
+code = "P00-10"
+name = "Incremental encoder lines"
+unit = "lines"
+min = 0
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The number of encoder lines in one motor turn. The drive counts 4 edges for each line. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-11"
+name = "Z pulse electrical angle"
+min = 0
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "The electrical angle of the rotor at the Z pulse of an incremental encoder. The drive uses it for commutation. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-12"
+name = "Rotor start angle 1"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 1 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-13"
+name = "Rotor start angle 2"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 2 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-14"
+name = "Rotor start angle 3"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 3 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-15"
+name = "Rotor start angle 4"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 4 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-16"
+name = "Rotor start angle 5"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 5 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-17"
+name = "Rotor start angle 6"
+unit = "°"
+min = 0
+max = 360
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Start angle 6 of 6 for commutation with an incremental encoder. The drive uses the six angles at start-up. The factory sets this value for the matched motor."
+
+[[param]]
+code = "P00-20"
+name = "Display at power-on"
+min = 0
+max = 100
+default = 100
+applies = "power-cycle"
+brief = "Selects what the front panel shows at power-on. 100 shows the run state. Other values show the monitor item with that number."
+
+[[param]]
+code = "P00-21"
+name = "RS232 baud rate"
+min = 0
+max = 3
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "The baud rate of the RS232 port that connects to a PC. A wrong value stops the PC link. Set the same rate in the PC software."
+choices = [
+  { value = 0, label = "9600 bit/s" },
+  { value = 1, label = "19200 bit/s" },
+  { value = 2, label = "57600 bit/s" },
+  { value = 3, label = "115200 bit/s" },
+]
+
+[[param]]
+code = "P00-22"
+name = "CAN node ID"
+min = 0
+max = 31
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "The node ID of this drive on a CAN bus. Each drive on the bus must have a different ID."
+
+[[param]]
+code = "P00-23"
+name = "Modbus station address"
+min = 0
+max = 255
+default = 1
+applies = "power-cycle"
+change = "servo-off"
+brief = "The Modbus address of this drive. Each drive on the same bus must have a different address. A wrong value stops the Modbus link."
+
+[[param]]
+code = "P00-24"
+name = "Modbus baud rate"
+min = 0
+max = 7
+default = 2
+applies = "power-cycle"
+change = "servo-off"
+brief = "The baud rate of the Modbus port. All devices on the bus must use the same rate. The value 7 is listed as 25600 bit/s, which is not a standard rate."
+choices = [
+  { value = 0, label = "2400 bit/s" },
+  { value = 1, label = "4800 bit/s" },
+  { value = 2, label = "9600 bit/s" },
+  { value = 3, label = "19200 bit/s" },
+  { value = 4, label = "38400 bit/s" },
+  { value = 5, label = "57600 bit/s" },
+  { value = 6, label = "115200 bit/s" },
+  { value = 7, label = "25600 bit/s (unverified)" },
+]
+
+[[param]]
+code = "P00-25"
+name = "Modbus parity and stop bits"
+min = 0
+max = 3
+default = 1
+applies = "power-cycle"
+change = "servo-off"
+brief = "The parity and the number of stop bits on the Modbus port. All devices on the bus must use the same format."
+choices = [
+  { value = 0, label = "No parity, 2 stop bits" },
+  { value = 1, label = "Even parity, 1 stop bit" },
+  { value = 2, label = "Odd parity, 1 stop bit" },
+  { value = 3, label = "No parity, 1 stop bit" },
+]
+
+[[param]]
+code = "P00-26"
+name = "Modbus reply delay"
+unit = "ms"
+min = 0
+max = 100
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "The time that the drive waits before it sends a Modbus reply. Increase it if the master cannot change from send to receive fast enough."
+
+[[param]]
+code = "P00-27"
+name = "CAN baud rate"
+min = 0
+max = 65535
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "The bit rate of the CAN bus. All devices on the bus must use the same rate. The value 1 is listed as 120 kbit/s, which is not a standard rate."
+choices = [
+  { value = 0, label = "12.5 kbit/s" },
+  { value = 1, label = "120 kbit/s (unverified)" },
+  { value = 2, label = "20 kbit/s" },
+  { value = 3, label = "100 kbit/s" },
+  { value = 4, label = "125 kbit/s" },
+  { value = 5, label = "250 kbit/s" },
+  { value = 6, label = "500 kbit/s" },
+  { value = 7, label = "1 Mbit/s" },
+]
+
+[[param]]
+code = "P00-28"
+name = "Modbus register map"
+min = 0
+max = 2
+default = 0
+applies = "power-cycle"
+brief = "Selects the Modbus register map. Use 1 for the standard map."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Standard" },
+  { value = 2, label = "Chishu compatible (adds registers 0x118 and 0x16E)" },
+]
+
+[[param]]
+code = "P00-29"
+name = "Absolute position registers"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+change = "servo-off"
+brief = "Selects which Modbus register holds the turn count and which holds the position in one turn. It applies to absolute encoders."
+choices = [
+  { value = 0, label = "0x84D = turns, 0x84E = position in turn" },
+  { value = 1, label = "0x84E = turns, 0x84D = position in turn" },
+]
+
+[[param]]
+code = "P00-30"
+name = "Braking resistor"
+min = 0
+max = 2
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "Selects the resistor that absorbs the energy that the motor returns when it slows down. For an external resistor, also set P00-31 and P00-32."
+choices = [
+  { value = 0, label = "Internal resistor" },
+  { value = 1, label = "External resistor" },
+  { value = 2, label = "No resistor" },
+]
+
+[[param]]
+code = "P00-31"
+name = "External resistor power"
+unit = "× 10 W"
+min = 0
+max = 65535
+default = 0
+applies = "power-cycle"
+brief = "The power rating of the external braking resistor. For example, 4 means 40 W."
+
+[[param]]
+code = "P00-32"
+name = "External resistor value"
+unit = "Ω"
+min = 0
+max = 1000
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "The resistance of the external braking resistor."
+
+[[param]]
+code = "P00-33"
+name = "Braking circuit check"
+min = 0
+max = 1
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "Turns on the open-circuit and short-circuit check of the braking circuit."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "On" },
+]
+
+[[param]]
+code = "P00-40"
+name = "Over-temperature protection"
+min = 0
+max = 3
+default = 1
+applies = "power-cycle"
+change = "servo-off"
+brief = "Selects the temperature sensor for the over-temperature protection. The internal sensor is in the power module."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "Internal sensor" },
+  { value = 2, label = "External sensor" },
+  { value = 3, label = "Find the sensor automatically" },
+]
+
+[[param]]
+code = "P00-41"
+name = "Control power loss protection"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+change = "servo-off"
+access = "motor"
+brief = "Turns on the protection that operates when the control power supply fails."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "On" },
+]
+
+[[param]]
+code = "P00-50"
+name = "Dead-time compensation"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Turns on compensation for the dead time of the power stage. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-51"
+name = "Main power loss detection"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+access = "factory"
+brief = "Turns on the detection of main power loss. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-52"
+name = "Undervoltage alarm"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+access = "factory"
+brief = "Turns on the alarm for low DC bus voltage. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-53"
+name = "Phase loss protection"
+min = 0
+max = 1
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Turns on the alarm for a missing phase of the main power. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-54"
+name = "DC bus voltage compensation"
+min = 0
+max = 1
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Turns on compensation for changes in the DC bus voltage. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-55"
+name = "DC bus compensation factor"
+min = 0
+max = 32767
+default = 17300
+applies = "unspecified"
+access = "factory"
+brief = "The factor for the DC bus voltage compensation (P00-54). Factory setting. Do not change it."
+
+[[param]]
+code = "P00-59"
+name = "Load mode"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The function is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-60"
+name = "PWM period"
+min = 1
+max = 8092
+default = 4999
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The switching period of the power stage. The unit is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-61"
+name = "PWM load mode"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The function is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-62"
+name = "Speed loop sample rate"
+min = 1
+max = 8
+default = 2
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The sample rate of the speed loop. The scale is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P00-63"
+name = "Position loop sample rate"
+min = 1
+max = 8
+default = 4
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The sample rate of the position loop. The scale is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P01-01"
+name = "Control mode"
+min = 0
+max = 6
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects what the drive controls. Modes 3, 4 and 5 use a digital input with function 5 to change between the two modes."
+choices = [
+  { value = 0, label = "Position" },
+  { value = 1, label = "Speed" },
+  { value = 2, label = "Torque" },
+  { value = 3, label = "Speed or torque (input selects)" },
+  { value = 4, label = "Position or speed (input selects)" },
+  { value = 5, label = "Position or torque (input selects)" },
+  { value = 6, label = "Full closed loop" },
+]
+
+[[param]]
+code = "P01-02"
+name = "Auto-tuning mode"
+min = 0
+max = 3
+default = 1
+applies = "now"
+brief = "Selects how the drive sets the loop gains. In modes 1 to 3, the drive sets the gains from the stiffness level P01-03 and you cannot change them. Mode 2 also fixes P02-03 at 30 % and P02-04 at 0.50 ms."
+choices = [
+  { value = 0, label = "Manual gains" },
+  { value = 1, label = "Automatic, standard" },
+  { value = 2, label = "Automatic, positioning" },
+  { value = 3, label = "Automatic, mode 2" },
+]
+
+[[param]]
+code = "P01-03"
+name = "Stiffness level"
+min = 0
+max = 31
+default = 13
+applies = "now"
+brief = "Selects one of 32 built-in gain sets when P01-02 is 1, 2 or 3. A higher level gives a stiffer and faster response. Too high a level causes noise and vibration."
+
+[[param]]
+code = "P01-04"
+name = "Load inertia ratio"
+unit = "×"
+decimals = 2
+min = 0
+max = 10000
+default = 300
+applies = "now"
+brief = "The load inertia divided by the motor rotor inertia (P00-04). The drive uses it to calculate the speed loop gain. Set it from an inertia identification or from the machine data."
+
+[[param]]
+code = "P01-10"
+name = "Stop mode at overtravel"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Selects how the motor stops when a limit input operates. After the stop, the drive accepts only commands in the reverse direction."
+choices = [
+  { value = 0, label = "Coast (motor free)" },
+  { value = 1, label = "Hold position (servo locked)" },
+]
+
+[[param]]
+code = "P01-20"
+name = "Dynamic brake delay"
+unit = "ms"
+min = 0
+max = 250
+default = 50
+applies = "now"
+brief = "The delay from the brake condition to the start of the dynamic brake."
+
+[[param]]
+code = "P01-21"
+name = "Dynamic brake at main power loss"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Selects if the drive uses the dynamic brake when the main power goes off. The dynamic brake shorts the motor windings to stop the motor."
+choices = [
+  { value = 0, label = "Use dynamic brake" },
+  { value = 1, label = "Do not use dynamic brake" },
+]
+
+[[param]]
+code = "P01-22"
+name = "Dynamic brake at servo off"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Selects if the drive uses the dynamic brake when the servo goes off."
+choices = [
+  { value = 0, label = "Use dynamic brake" },
+  { value = 1, label = "Do not use dynamic brake" },
+]
+
+[[param]]
+code = "P01-23"
+name = "Dynamic brake at alarm"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Selects if the drive uses the dynamic brake when an alarm stops the motor."
+choices = [
+  { value = 0, label = "Use dynamic brake" },
+  { value = 1, label = "Do not use dynamic brake" },
+]
+
+[[param]]
+code = "P01-24"
+name = "Dynamic brake at overtravel"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Selects if the drive uses the dynamic brake when a limit input stops the motor."
+choices = [
+  { value = 0, label = "Use dynamic brake" },
+  { value = 1, label = "Do not use dynamic brake" },
+]
+
+[[param]]
+code = "P01-30"
+name = "Brake delay, motor stopped"
+unit = "ms"
+min = 0
+max = 255
+default = 50
+applies = "now"
+brief = "At servo on, the drive accepts commands this time after it releases the holding brake. At servo off with the motor stopped, the motor stays energized for this time after the brake engages."
+
+[[param]]
+code = "P01-31"
+name = "Brake speed threshold"
+unit = "rpm"
+min = 0
+max = 3000
+default = 100
+applies = "now"
+brief = "At servo off with the motor turning, the drive engages the holding brake when the speed falls below this value. The time limit is P01-32."
+
+[[param]]
+code = "P01-32"
+name = "Brake wait time, motor turning"
+unit = "ms"
+min = 0
+max = 255
+default = 50
+applies = "now"
+brief = "At servo off with the motor turning, the longest time that the drive waits before it engages the holding brake. See also P01-31."
+
+[[param]]
+code = "P01-35"
+name = "Z pulse output width"
+unit = "ms"
+decimals = 1
+min = 0
+max = 65535
+default = 0
+applies = "now"
+brief = "The width of the Z pulse on the encoder output. 0 gives the default width."
+
+[[param]]
+code = "P01-40"
+name = "Runaway detection"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "Stops the motor with an alarm if it turns out of control or in the wrong direction."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "On" },
+]
+
+[[param]]
+code = "P01-50"
+name = "Servo-on source"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-57"
+name = "Overload threshold"
+min = 0
+max = 65535
+default = 703
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "The threshold for the motor overload protection. Factory setting. Do not change it."
+
+[[param]]
+code = "P01-58"
+name = "D-axis back-EMF constant"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-59"
+name = "Q-axis back-EMF constant"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-60"
+name = "Encoder Z pulse enable"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-61"
+name = "Speed pulse source"
+min = 0
+max = 1
+default = 0
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-62"
+name = "Speed pulse edge"
+min = 0
+max = 3
+default = 0
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-63"
+name = "Encoder direction invert"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-64"
+name = "Encoder Z pulse polarity"
+min = 0
+max = 1
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P01-70"
+name = "Speed filter"
+min = 0
+max = 3
+default = 1
+applies = "unspecified"
+change = "servo-off"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P02-00"
+name = "Position loop gain 1"
+unit = "1/s"
+decimals = 1
+min = 0
+max = 30000
+default = 480
+applies = "now"
+brief = "The proportional gain of the position loop in gain set 1. A higher value gives more stiffness and less following error. Too high a value causes overshoot and vibration."
+
+[[param]]
+code = "P02-01"
+name = "Position loop gain 2"
+unit = "1/s"
+decimals = 1
+min = 0
+max = 30000
+default = 570
+applies = "now"
+brief = "The proportional gain of the position loop in gain set 2. A higher value gives more stiffness and less following error. Too high a value causes overshoot and vibration."
+
+[[param]]
+code = "P02-03"
+name = "Speed feedforward gain"
+unit = "%"
+decimals = 1
+min = 0
+max = 1000
+default = 300
+applies = "now"
+brief = "The part of the position command rate that goes directly to the speed loop. A higher value reduces the following error. Too high a value causes overshoot."
+
+[[param]]
+code = "P02-04"
+name = "Speed feedforward filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 6400
+default = 50
+applies = "now"
+brief = "A low-pass filter on the speed feedforward (P02-03). A higher value gives a smoother signal, but more delay."
+
+[[param]]
+code = "P02-10"
+name = "Speed loop gain 1"
+unit = "Hz"
+decimals = 1
+min = 10
+max = 20000
+default = 270
+applies = "now"
+brief = "The proportional gain of the speed loop in gain set 1. A higher value gives a stiffer and faster response. Too high a value causes vibration and noise."
+
+[[param]]
+code = "P02-11"
+name = "Speed loop integral time 1"
+unit = "ms"
+decimals = 1
+min = 1
+max = 10000
+default = 100
+applies = "now"
+brief = "The integral time constant of the speed loop in gain set 1. A lower value removes speed error faster. Too low a value causes vibration and noise."
+
+[[param]]
+code = "P02-12"
+name = "Speed loop PDFF factor 1"
+unit = "%"
+decimals = 1
+min = 0
+max = 1000
+default = 1000
+applies = "now"
+brief = "The mix of PI control and pseudo-derivative feedback in the speed loop, gain set 1. 100 % is PI control with the fastest response. Lower values resist low-frequency disturbance better, but respond more slowly."
+
+[[param]]
+code = "P02-13"
+name = "Speed loop gain 2"
+unit = "Hz"
+decimals = 1
+min = 10
+max = 20000
+default = 270
+applies = "now"
+brief = "The proportional gain of the speed loop in gain set 2. A higher value gives a stiffer and faster response. Too high a value causes vibration and noise."
+
+[[param]]
+code = "P02-14"
+name = "Speed loop integral time 2"
+unit = "ms"
+decimals = 1
+min = 1
+max = 10000
+default = 10000
+applies = "now"
+brief = "The integral time constant of the speed loop in gain set 2. A lower value removes speed error faster. Too low a value causes vibration and noise."
+
+[[param]]
+code = "P02-15"
+name = "Speed loop PDFF factor 2"
+unit = "%"
+decimals = 1
+min = 0
+max = 1000
+default = 1000
+applies = "now"
+brief = "The mix of PI control and pseudo-derivative feedback in the speed loop, gain set 2. 100 % is PI control with the fastest response. Lower values resist low-frequency disturbance better, but respond more slowly."
+
+[[param]]
+code = "P02-16"
+name = "Speed integral limit"
+min = 0
+max = 32767
+default = 25000
+applies = "now"
+change = "servo-off"
+brief = "The limit of the speed loop integrator. It stops the integrator from winding up when the output is at its limit."
+
+[[param]]
+code = "P02-19"
+name = "Torque feedforward gain"
+min = 0
+max = 30000
+default = 0
+applies = "now"
+brief = "The gain of the torque feedforward, which the drive calculates from the rate of change of the speed command. 0 turns it off. The scale is not documented, so start with small values."
+
+[[param]]
+code = "P02-20"
+name = "Torque feedforward filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 6400
+default = 80
+applies = "now"
+brief = "A low-pass filter on the torque feedforward (P02-19). A higher value gives a smoother signal, but more delay."
+
+[[param]]
+code = "P02-30"
+name = "Gain switching mode"
+min = 0
+max = 10
+default = 7
+applies = "now"
+brief = "Selects when the drive changes from gain set 1 to gain set 2. The level is P02-31 and the hysteresis is P02-32. The return delay is P02-33."
+choices = [
+  { value = 0, label = "Gain set 1 only" },
+  { value = 1, label = "Gain set 2 only" },
+  { value = 2, label = "Digital input (function 9)" },
+  { value = 3, label = "Torque command above level" },
+  { value = 4, label = "Speed command change above level" },
+  { value = 5, label = "Speed command above level" },
+  { value = 6, label = "Position error above level" },
+  { value = 7, label = "Position command present" },
+  { value = 8, label = "Positioning not complete" },
+  { value = 9, label = "Actual speed above level" },
+  { value = 10, label = "Position command or actual speed above level" },
+]
+
+[[param]]
+code = "P02-31"
+name = "Gain switching level"
+min = 0
+max = 20000
+default = 800
+applies = "now"
+brief = "The level for the gain switching condition in P02-30. Scale: torque 1000 = 25 % of rated torque; speed 1000 = 200 rpm; position 131072 = one motor turn."
+
+[[param]]
+code = "P02-32"
+name = "Gain switching hysteresis"
+min = 0
+max = 20000
+default = 100
+applies = "now"
+brief = "The hysteresis for the gain switching level P02-31. Scale: torque 1000 = 25 % of rated torque; speed 1000 = 200 rpm; position 131072 = one motor turn."
+
+[[param]]
+code = "P02-33"
+name = "Gain switching delay"
+unit = "ms"
+decimals = 1
+min = 0
+max = 10000
+default = 100
+applies = "now"
+brief = "The time from the end of the switching condition to the return to gain set 1."
+
+[[param]]
+code = "P02-34"
+name = "Position gain switching time"
+unit = "ms"
+decimals = 1
+min = 0
+max = 10000
+default = 100
+applies = "now"
+brief = "The time for a smooth change from position loop gain 1 (P02-00) to position loop gain 2 (P02-01)."
+
+[[param]]
+code = "P02-40"
+name = "P/PI switching condition"
+min = 0
+max = 4
+default = 0
+applies = "now"
+brief = "Selects the signal that changes the speed loop from PI control to P control. Below the level P02-41 the loop uses PI control. Above it, the loop uses P control."
+choices = [
+  { value = 0, label = "Torque command" },
+  { value = 1, label = "Speed command" },
+  { value = 2, label = "Acceleration" },
+  { value = 3, label = "Position error" },
+  { value = 4, label = "Off (PI control only)" },
+]
+
+[[param]]
+code = "P02-41"
+name = "P/PI switching level"
+min = 0
+max = 20000
+default = 10000
+applies = "now"
+brief = "The level for the P/PI switching condition in P02-40. Scale: torque 1000 = 25 % of rated torque; speed 1000 = 200 rpm; position 131072 = one motor turn."
+
+[[param]]
+code = "P02-50"
+name = "Torque offset"
+unit = "%"
+decimals = 1
+signed = true
+min = -1000
+max = 1000
+default = 0
+applies = "now"
+brief = "A fixed torque that the drive adds to the torque command in position mode. Use it to hold a vertical axis against gravity."
+
+[[param]]
+code = "P02-51"
+name = "Forward friction compensation"
+unit = "%"
+decimals = 1
+signed = true
+min = -1000
+max = 1000
+default = 0
+applies = "now"
+brief = "A torque that the drive adds in the forward direction to overcome static friction. It applies in position mode."
+
+[[param]]
+code = "P02-52"
+name = "Reverse friction compensation"
+unit = "%"
+decimals = 1
+signed = true
+min = -1000
+max = 1000
+default = 0
+applies = "now"
+brief = "A torque that the drive adds in the reverse direction to overcome static friction. It applies in position mode."
+
+[[param]]
+code = "P02-59"
+name = "Gain format"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects the current loop gain format. Use 0 for parameter sets from firmware V4.x to V6.x."
+choices = [
+  { value = 0, label = "Old format (firmware V4.x to V6.x)" },
+  { value = 1, label = "New current loop format" },
+]
+
+[[param]]
+code = "P02-60"
+name = "Current loop integral limit"
+min = 0
+max = 16383
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P02-61"
+name = "D-axis current loop P gain"
+min = 0
+max = 8888
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P02-62"
+name = "D-axis current loop I gain"
+min = 0
+max = 8888
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P02-63"
+name = "Q-axis current loop P gain"
+min = 0
+max = 8888
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P02-64"
+name = "Q-axis current loop I gain"
+min = 0
+max = 8888
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P03-00"
+name = "Position command source"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects where the position command comes from."
+choices = [
+  { value = 0, label = "Pulse input" },
+  { value = 1, label = "Digital (communication)" },
+]
+
+[[param]]
+code = "P03-01"
+name = "Pulse input format"
+min = 0
+max = 3
+default = 1
+applies = "now"
+change = "servo-off"
+brief = "The signal format of the pulse command input. It must match the controller output."
+choices = [
+  { value = 0, label = "A/B quadrature" },
+  { value = 1, label = "Pulse and direction" },
+  { value = 2, label = "CW/CCW pulses" },
+  { value = 3, label = "CW/CCW pulses (same as 2)" },
+]
+
+[[param]]
+code = "P03-02"
+name = "Pulse input port"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects the pulse command input on connector CN1."
+choices = [
+  { value = 0, label = "Low-speed input" },
+  { value = 1, label = "High-speed input" },
+]
+
+[[param]]
+code = "P03-03"
+name = "Pulse direction invert"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Reverses the count direction of the pulse command."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Reversed" },
+]
+
+[[param]]
+code = "P03-04"
+name = "Pulse input filter"
+min = 0
+max = 3
+default = 0
+applies = "now"
+brief = "A digital filter on the pulse command input. A longer time rejects more noise, but limits the maximum pulse rate."
+choices = [
+  { value = 0, label = "0.1 µs" },
+  { value = 1, label = "0.4 µs" },
+  { value = 2, label = "0.8 µs" },
+  { value = 3, label = "1.6 µs" },
+]
+
+[[param]]
+code = "P03-05"
+name = "In-position condition"
+min = 0
+max = 2
+default = 1
+applies = "now"
+brief = "Selects when the drive sets the in-position output. The range is P03-06."
+choices = [
+  { value = 0, label = "Position error below P03-06" },
+  { value = 1, label = "Command complete and error below P03-06" },
+  { value = 2, label = "Filtered command complete and error below P03-06" },
+]
+
+[[param]]
+code = "P03-06"
+name = "In-position range"
+unit = "encoder counts"
+min = 0
+max = 65535
+default = 100
+applies = "now"
+brief = "The position error below which the drive sets the in-position output. An absolute encoder gives 131072 counts per turn. An incremental encoder gives 4 counts per line."
+
+[[param]]
+code = "P03-07"
+name = "Position feedback format"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects the format of the position feedback."
+choices = [
+  { value = 0, label = "Incremental" },
+  { value = 1, label = "Absolute, multi-turn" },
+]
+
+[[param]]
+code = "P03-09"
+name = "Command pulses per turn"
+unit = "pulses"
+min = 0
+max = 65535
+default = 10000
+applies = "power-cycle"
+brief = "The number of command pulses for one motor turn. 0 means that the drive uses the electronic gear P03-10 and P03-11."
+
+[[param]]
+code = "P03-10"
+name = "Electronic gear 1 numerator"
+min = 1
+max = 65535
+default = 1
+applies = "power-cycle"
+brief = "The numerator of electronic gear 1. The drive multiplies each command pulse by the numerator divided by the denominator P03-11. It applies when P03-09 is 0."
+
+[[param]]
+code = "P03-11"
+name = "Electronic gear 1 denominator"
+min = 1
+max = 65535
+default = 1
+applies = "power-cycle"
+brief = "The denominator of electronic gear 1. See P03-10."
+
+[[param]]
+code = "P03-12"
+name = "Electronic gear 1 numerator, high part"
+min = 0
+max = 32767
+default = 0
+applies = "power-cycle"
+change = "servo-off"
+brief = "Extends the numerator of electronic gear 1. Numerator = P03-12 × 10000 + P03-10."
+
+[[param]]
+code = "P03-13"
+name = "Electronic gear 2 numerator"
+min = 1
+max = 65535
+default = 1
+applies = "power-cycle"
+brief = "The numerator of electronic gear 2. A digital input with function 6 selects gear 2."
+
+[[param]]
+code = "P03-14"
+name = "Electronic gear 2 denominator"
+min = 1
+max = 65535
+default = 1
+applies = "power-cycle"
+brief = "The denominator of electronic gear 2. See P03-13."
+
+[[param]]
+code = "P03-15"
+name = "Position error alarm level"
+unit = "× 10 pulses"
+min = 0
+max = 65535
+default = 30000
+applies = "now"
+brief = "The largest allowed position error, in units of 10 command pulses. If the error is larger, the drive stops with an alarm."
+
+[[param]]
+code = "P03-16"
+name = "Position command filter"
+unit = "ms"
+decimals = 1
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "A smoothing filter on the position command. A higher value gives smoother motion, but more delay."
+
+[[param]]
+code = "P03-20"
+name = "Position feedback source"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects the feedback for the position loop."
+choices = [
+  { value = 0, label = "Motor encoder" },
+  { value = 1, label = "Linear scale" },
+]
+
+[[param]]
+code = "P03-22"
+name = "Encoder output divider numerator"
+min = 1
+max = 65535
+default = 1
+applies = "now"
+brief = "Sets the encoder output rate on CN1 for an incremental encoder. Output lines per turn = encoder lines × P03-23 / P03-22. P03-23 must not be larger than P03-22."
+
+[[param]]
+code = "P03-23"
+name = "Encoder output divider denominator"
+min = 1
+max = 65535
+default = 1
+applies = "now"
+brief = "The denominator of the encoder output divider. See P03-22."
+
+[[param]]
+code = "P03-25"
+name = "Encoder output pulses per turn"
+unit = "pulses"
+min = 0
+max = 60000
+default = 2500
+applies = "now"
+brief = "The number of pulses on each of the A and B outputs for one motor turn. It applies to an absolute encoder."
+
+[[param]]
+code = "P03-30"
+name = "Linear scale A/B phase"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Reverses the A/B phase order of the linear scale input."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Reversed" },
+]
+
+[[param]]
+code = "P03-31"
+name = "Linear scale Z polarity"
+min = 0
+max = 1
+default = 1
+applies = "now"
+change = "servo-off"
+brief = "The active level of the Z signal from the linear scale."
+choices = [
+  { value = 0, label = "Active low" },
+  { value = 1, label = "Active high" },
+]
+
+[[param]]
+code = "P03-40"
+name = "Encoder output source"
+min = 0
+max = 3
+default = 1
+applies = "now"
+change = "servo-off"
+brief = "Selects the signal on the encoder output of CN1."
+choices = [
+  { value = 0, label = "Pulse command (stops at alarm)" },
+  { value = 1, label = "Motor encoder" },
+  { value = 2, label = "Pulse command" },
+  { value = 3, label = "Linear scale" },
+]
+
+[[param]]
+code = "P03-41"
+name = "Encoder output A/B invert"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Reverses the A/B phase order of the encoder output."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Reversed" },
+]
+
+[[param]]
+code = "P03-42"
+name = "Encoder output Z polarity"
+min = 0
+max = 1
+default = 1
+applies = "now"
+change = "servo-off"
+brief = "The active level of the Z signal on the encoder output."
+choices = [
+  { value = 0, label = "Active low" },
+  { value = 1, label = "Active high" },
+]
+
+[[param]]
+code = "P03-43"
+name = "Pulse input edge"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects the edge of the pulse command that the drive counts."
+choices = [
+  { value = 0, label = "Rising edge" },
+  { value = 1, label = "Falling edge" },
+]
+
+[[param]]
+code = "P03-45"
+name = "Digital position buffer"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects what the drive does when a new digital position command arrives during a move."
+choices = [
+  { value = 0, label = "No buffer: the new command starts now" },
+  { value = 1, label = "Buffer: the current command finishes first" },
+]
+
+[[param]]
+code = "P03-46"
+name = "Digital position maximum speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 1000
+applies = "now"
+brief = "The maximum motor speed for digital position commands."
+
+[[param]]
+code = "P03-50"
+name = "Gantry synchronization"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Turns on the synchronization of two motors on one gantry axis."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "On" },
+]
+
+[[param]]
+code = "P03-51"
+name = "Gantry input invert"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Inverts the input signal of the gantry synchronization."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Inverted" },
+]
+
+[[param]]
+code = "P03-52"
+name = "Gantry feedback pulses per turn"
+unit = "pulses"
+min = 0
+max = 65535
+default = 10000
+applies = "now"
+change = "servo-off"
+brief = "The number of feedback pulses for one turn of the other gantry motor."
+
+[[param]]
+code = "P03-53"
+name = "Gantry error alarm level"
+min = 0
+max = 65535
+default = 10000
+applies = "now"
+brief = "The largest allowed position difference between the two gantry motors. If the difference is larger, the drive stops with an alarm."
+
+[[param]]
+code = "P03-55"
+name = "Gantry correction gain"
+min = 0
+max = 200
+default = 10
+applies = "now"
+brief = "The proportional gain that corrects the position difference between the two gantry motors."
+
+[[param]]
+code = "P03-60"
+name = "Homing enable"
+min = 0
+max = 6
+default = 0
+applies = "now"
+brief = "Controls the homing function. The meaning of the values 0 to 6 is not documented."
+
+[[param]]
+code = "P03-61"
+name = "Homing method"
+min = 0
+max = 9
+default = 0
+applies = "now"
+brief = "Selects the homing method. The meaning of the values 0 to 9 is not documented."
+
+[[param]]
+code = "P03-65"
+name = "Homing high speed"
+min = 0
+max = 3000
+default = 100
+applies = "now"
+change = "servo-off"
+brief = "The speed for the search for the home switch. The unit is not documented. It is probably rpm."
+
+[[param]]
+code = "P03-66"
+name = "Homing low speed"
+min = 0
+max = 1000
+default = 10
+applies = "now"
+change = "servo-off"
+brief = "The speed for the final approach to home. The unit is not documented. It is probably rpm."
+
+[[param]]
+code = "P03-67"
+name = "Homing ramp time"
+min = 0
+max = 5000
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "The acceleration and deceleration time during homing. The unit is not documented. It is probably ms."
+
+[[param]]
+code = "P03-68"
+name = "Homing time limit"
+min = 0
+max = 10000
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "The longest time for the homing sequence. If homing takes longer, the drive stops with an alarm. The unit is not documented."
+
+[[param]]
+code = "P03-69"
+name = "Home offset, high part"
+min = 0
+max = 65535
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "The high part of the offset from the home switch to the machine home. P03-70 is the low part."
+
+[[param]]
+code = "P03-70"
+name = "Home offset, low part"
+min = 0
+max = 65535
+default = 1000
+applies = "now"
+change = "servo-off"
+brief = "The low part of the offset from the home switch to the machine home. P03-69 is the high part."
+
+[[param]]
+code = "P04-00"
+name = "Speed command source"
+min = 0
+max = 3
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects where the speed command comes from in speed mode."
+choices = [
+  { value = 0, label = "Analog input" },
+  { value = 1, label = "Parameter P04-02" },
+  { value = 2, label = "Communication" },
+  { value = 3, label = "Internal speeds (inputs select)" },
+]
+
+[[param]]
+code = "P04-01"
+name = "Speed analog input invert"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Reverses the polarity of the analog speed command."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Reversed" },
+]
+
+[[param]]
+code = "P04-02"
+name = "Digital speed command"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "The speed command when P04-00 is 1."
+
+[[param]]
+code = "P04-03"
+name = "Zero clamp"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "In speed mode, holds the motor position when the speed command is below P04-04 and a digital input with function 10 is on."
+choices = [
+  { value = 0, label = "Off" },
+  { value = 1, label = "On" },
+]
+
+[[param]]
+code = "P04-04"
+name = "Zero clamp speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 30
+applies = "now"
+brief = "The speed command below which the zero clamp (P04-03) holds the motor."
+
+[[param]]
+code = "P04-05"
+name = "Overspeed alarm level"
+unit = "rpm"
+min = 0
+max = 6500
+default = 6400
+applies = "now"
+brief = "If the motor speed is more than this value, the drive stops with an overspeed alarm."
+
+[[param]]
+code = "P04-06"
+name = "Forward speed limit"
+unit = "rpm"
+min = 0
+max = 6000
+default = 5000
+applies = "now"
+brief = "The maximum motor speed in the forward direction."
+
+[[param]]
+code = "P04-07"
+name = "Reverse speed limit"
+unit = "rpm"
+signed = true
+min = -6000
+max = 0
+default = -5000
+applies = "now"
+brief = "The maximum motor speed in the reverse direction. The value is negative."
+
+[[param]]
+code = "P04-10"
+name = "Zero speed level"
+unit = "rpm"
+min = 0
+max = 200
+default = 2
+applies = "now"
+brief = "Below this speed, the drive sets the zero speed output."
+
+[[param]]
+code = "P04-11"
+name = "Rotation detection level"
+unit = "rpm"
+min = 0
+max = 200
+default = 30
+applies = "now"
+brief = "Above this speed, the front panel shows that the motor turns."
+
+[[param]]
+code = "P04-12"
+name = "Speed match range"
+unit = "rpm"
+min = 0
+max = 200
+default = 30
+applies = "now"
+brief = "When the speed error is less than this value, the drive sets the speed match output."
+
+[[param]]
+code = "P04-14"
+name = "Acceleration time"
+unit = "ms per 1000 rpm"
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "The time to accelerate by 1000 rpm in speed mode. 0 gives no ramp."
+
+[[param]]
+code = "P04-15"
+name = "Deceleration time"
+unit = "ms per 1000 rpm"
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "The time to decelerate by 1000 rpm in speed mode. 0 gives no ramp."
+
+[[param]]
+code = "P04-30"
+name = "Internal speed 1"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 1 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-31"
+name = "Internal speed 2"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 2 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-32"
+name = "Internal speed 3"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 3 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-33"
+name = "Internal speed 4"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 4 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-34"
+name = "Internal speed 5"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 5 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-35"
+name = "Internal speed 6"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 6 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-36"
+name = "Internal speed 7"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 7 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-37"
+name = "Internal speed 8"
+unit = "rpm"
+signed = true
+min = -6000
+max = 6000
+default = 0
+applies = "now"
+brief = "Internal speed 8 of 8. When P04-00 is 3, digital inputs with functions 13, 14 and 15 select one of the eight speeds."
+
+[[param]]
+code = "P04-51"
+name = "Motor zero speed delay"
+min = 0
+max = 100
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P04-52"
+name = "Pulse command zero speed delay"
+min = 0
+max = 100
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P04-53"
+name = "Speed measurement switching level"
+min = 0
+max = 32767
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P05-00"
+name = "Torque command source"
+min = 0
+max = 3
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects where the torque command and the speed limit come from in torque mode."
+choices = [
+  { value = 0, label = "Analog input; speed limit P05-02" },
+  { value = 1, label = "Parameter P05-03; speed limit P05-02" },
+  { value = 2, label = "Analog input; speed limit from the speed analog input" },
+  { value = 3, label = "Parameter P05-03; speed limit from the speed analog input" },
+]
+
+[[param]]
+code = "P05-01"
+name = "Torque analog input invert"
+min = 0
+max = 1
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Reverses the polarity of the analog torque command."
+choices = [
+  { value = 0, label = "Normal" },
+  { value = 1, label = "Reversed" },
+]
+
+[[param]]
+code = "P05-02"
+name = "Speed limit in torque mode"
+unit = "rpm"
+signed = true
+min = 0
+max = 6000
+default = 1500
+applies = "now"
+brief = "The maximum motor speed in torque mode. It prevents a high speed when the motor has no load."
+
+[[param]]
+code = "P05-03"
+name = "Digital torque command"
+unit = "%"
+decimals = 1
+signed = true
+min = -3000
+max = 3000
+default = 0
+applies = "now"
+brief = "The torque command when P05-00 is 1 or 3. 100 % is the rated torque."
+
+[[param]]
+code = "P05-05"
+name = "Torque limit source"
+min = 0
+max = 2
+default = 0
+applies = "now"
+change = "servo-off"
+brief = "Selects where the torque limit comes from."
+choices = [
+  { value = 0, label = "Parameters P05-10 to P05-13" },
+  { value = 1, label = "Analog input (same limit in both directions)" },
+  { value = 2, label = "Parameter P05-03" },
+]
+
+[[param]]
+code = "P05-06"
+name = "Torque limit output delay"
+unit = "ms"
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "The delay before the drive sets the torque limit output."
+
+[[param]]
+code = "P05-07"
+name = "Torque correction factor"
+unit = "%"
+min = 50
+max = 150
+default = 0
+applies = "now"
+brief = "Corrects the torque output. For example, if a command of 1.27 N·m gives 1 N·m, set 127. The default value 0 is outside the range."
+
+[[param]]
+code = "P05-08"
+name = "Screwdriver torque unit"
+min = 0
+max = 2
+default = 0
+applies = "now"
+brief = "The unit of the torque limits in the screwdriver sequence (P05-18 to P05-28)."
+choices = [
+  { value = 0, label = "% of rated torque" },
+  { value = 1, label = "0.01 N·m" },
+  { value = 2, label = "Step 4 in 0.01 N·m, other steps in %" },
+]
+
+[[param]]
+code = "P05-09"
+name = "Screwdriver direction mode"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects tighten or loosen for the screwdriver sequence. To loosen, the speed is P05-02 and the torque is P05-10."
+choices = [
+  { value = 0, label = "Tighten" },
+  { value = 1, label = "Loosen" },
+]
+
+[[param]]
+code = "P05-10"
+name = "Forward torque limit"
+unit = "%"
+decimals = 1
+min = 0
+max = 3000
+default = 2000
+applies = "now"
+brief = "The internal limit of the forward torque. 100 % is the rated torque."
+
+[[param]]
+code = "P05-11"
+name = "Reverse torque limit"
+unit = "%"
+decimals = 1
+signed = true
+min = -3000
+max = 0
+default = -2000
+applies = "now"
+brief = "The internal limit of the reverse torque. The value is negative."
+
+[[param]]
+code = "P05-12"
+name = "External forward torque limit"
+unit = "%"
+decimals = 1
+min = 0
+max = 3000
+default = 1000
+applies = "now"
+brief = "The forward torque limit when a digital input with function 7 is on."
+
+[[param]]
+code = "P05-13"
+name = "External reverse torque limit"
+unit = "%"
+decimals = 1
+signed = true
+min = -3000
+max = 0
+default = -1000
+applies = "now"
+brief = "The reverse torque limit when a digital input with function 8 is on. The value is negative."
+
+[[param]]
+code = "P05-14"
+name = "Screwdriver end state"
+min = 0
+max = 2
+default = 0
+applies = "now"
+brief = "The motor state at the end of the screwdriver sequence."
+choices = [
+  { value = 0, label = "Motor free" },
+  { value = 1, label = "Motor holds" },
+  { value = 2, label = "Reserved" },
+]
+
+[[param]]
+code = "P05-15"
+name = "Screwdriver run direction"
+min = 0
+max = 1
+default = 1
+applies = "now"
+brief = "The run direction of the screwdriver sequence. The direction for each value is not documented."
+
+[[param]]
+code = "P05-16"
+name = "Screwdriver time limit"
+unit = "s"
+decimals = 1
+min = 0
+max = 65535
+default = 100
+applies = "now"
+brief = "The longest time for the screwdriver sequence. The drive uses it as an extra check."
+
+[[param]]
+code = "P05-17"
+name = "Screwdriver step wait"
+unit = "ms"
+min = 0
+max = 65500
+default = 100
+applies = "now"
+brief = "The wait time between the steps of the screwdriver sequence."
+
+[[param]]
+code = "P05-18"
+name = "Screwdriver step 1 speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 0
+applies = "now"
+brief = "The motor speed in step 1 of the screwdriver sequence."
+
+[[param]]
+code = "P05-19"
+name = "Screwdriver step 1 torque limit"
+unit = "%"
+min = 0
+max = 300
+default = 0
+applies = "now"
+brief = "The torque limit in step 1 of the screwdriver sequence. 0 means that the step is not used."
+
+[[param]]
+code = "P05-20"
+name = "Screwdriver step 2 speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 0
+applies = "now"
+brief = "The motor speed in step 2 of the screwdriver sequence."
+
+[[param]]
+code = "P05-21"
+name = "Screwdriver step 2 torque limit"
+unit = "%"
+min = 0
+max = 300
+default = 0
+applies = "now"
+brief = "The torque limit in step 2 of the screwdriver sequence. 0 means that the step is not used."
+
+[[param]]
+code = "P05-22"
+name = "Screwdriver step 3 speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 0
+applies = "now"
+brief = "The motor speed in step 3 of the screwdriver sequence."
+
+[[param]]
+code = "P05-23"
+name = "Screwdriver step 3 torque limit"
+unit = "%"
+min = 0
+max = 300
+default = 0
+applies = "now"
+brief = "The torque limit in step 3 of the screwdriver sequence. 0 means that the step is not used."
+
+[[param]]
+code = "P05-24"
+name = "Screwdriver back-off speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 0
+applies = "now"
+brief = "The motor speed for the back-off at the end of the screwdriver sequence."
+
+[[param]]
+code = "P05-25"
+name = "Screwdriver back-off angle"
+min = 0
+max = 36000
+default = 0
+applies = "now"
+brief = "The rotation angle of the back-off. The unit is listed as degrees, but the range 0 to 36000 suggests 0.01°. Check it on the machine."
+
+[[param]]
+code = "P05-26"
+name = "Screwdriver step 4 speed"
+unit = "rpm"
+min = 0
+max = 6000
+default = 0
+applies = "now"
+brief = "The motor speed in step 4 of the screwdriver sequence."
+
+[[param]]
+code = "P05-27"
+name = "Screwdriver step 4 torque limit"
+unit = "%"
+decimals = 1
+min = 0
+max = 3000
+default = 0
+applies = "now"
+brief = "The torque limit in step 4 of the screwdriver sequence. 0 means that the step is not used."
+
+[[param]]
+code = "P05-28"
+name = "Screwdriver back-off torque limit"
+unit = "%"
+min = 0
+max = 300
+default = 200
+applies = "now"
+brief = "The torque limit for the back-off at the end of the screwdriver sequence."
+
+[[param]]
+code = "P05-30"
+name = "U-phase current offset"
+signed = true
+min = -512
+max = 512
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P05-31"
+name = "W-phase current offset"
+signed = true
+min = -512
+max = 512
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P06-00"
+name = "DI1 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI1 on CN1. P06-01 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-01"
+name = "DI1 function"
+min = 0
+max = 24
+default = 1
+applies = "power-cycle"
+brief = "The function of digital input DI1 on CN1. P06-00 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-02"
+name = "DI2 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI2 on CN1. P06-03 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-03"
+name = "DI2 function"
+min = 0
+max = 24
+default = 2
+applies = "power-cycle"
+brief = "The function of digital input DI2 on CN1. P06-02 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-04"
+name = "DI3 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI3 on CN1. P06-05 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-05"
+name = "DI3 function"
+min = 0
+max = 24
+default = 3
+applies = "power-cycle"
+brief = "The function of digital input DI3 on CN1. P06-04 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-06"
+name = "DI4 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI4 on CN1. P06-07 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-07"
+name = "DI4 function"
+min = 0
+max = 24
+default = 4
+applies = "power-cycle"
+brief = "The function of digital input DI4 on CN1. P06-06 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-08"
+name = "DI5 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI5 on CN1. P06-09 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-09"
+name = "DI5 function"
+min = 0
+max = 24
+default = 7
+applies = "power-cycle"
+brief = "The function of digital input DI5 on CN1. P06-08 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-10"
+name = "DI6 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI6 on CN1. P06-11 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-11"
+name = "DI6 function"
+min = 0
+max = 24
+default = 8
+applies = "power-cycle"
+brief = "The function of digital input DI6 on CN1. P06-10 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-12"
+name = "DI7 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI7 on CN1. P06-13 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-13"
+name = "DI7 function"
+min = 0
+max = 24
+default = 5
+applies = "power-cycle"
+brief = "The function of digital input DI7 on CN1. P06-12 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-16"
+name = "DI8 active state"
+min = 0
+max = 4
+default = 0
+applies = "power-cycle"
+brief = "The active state of digital input DI8 on CN1. P06-17 sets its function."
+choices = [
+  { value = 0, label = "Active low (optocoupler on)" },
+  { value = 1, label = "Active high (optocoupler off)" },
+  { value = 2, label = "Rising edge" },
+  { value = 3, label = "Falling edge" },
+  { value = 4, label = "Both edges" },
+]
+
+[[param]]
+code = "P06-17"
+name = "DI8 function"
+min = 0
+max = 24
+default = 16
+applies = "power-cycle"
+brief = "The function of digital input DI8 on CN1. P06-16 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Servo on" },
+  { value = 2, label = "Alarm reset" },
+  { value = 3, label = "Forward limit" },
+  { value = 4, label = "Reverse limit" },
+  { value = 5, label = "Control mode switch" },
+  { value = 6, label = "Electronic gear select" },
+  { value = 7, label = "External forward torque limit" },
+  { value = 8, label = "External reverse torque limit" },
+  { value = 9, label = "Gain switch" },
+  { value = 10, label = "Zero clamp" },
+  { value = 11, label = "Pulse inhibit" },
+  { value = 12, label = "Absolute data request" },
+  { value = 13, label = "Internal speed select 1" },
+  { value = 14, label = "Internal speed select 2" },
+  { value = 15, label = "Internal speed select 3" },
+  { value = 16, label = "Position command clear" },
+  { value = 17, label = "Magnetic pole detection" },
+  { value = 18, label = "Pulse multiplier switch" },
+  { value = 19, label = "Gantry sync enable" },
+  { value = 20, label = "Gantry alignment clear" },
+  { value = 21, label = "Home switch" },
+  { value = 22, label = "Homing start" },
+  { value = 23, label = "Speed analog direction" },
+  { value = 24, label = "Torque analog direction" },
+]
+
+[[param]]
+code = "P06-20"
+name = "DO1 active state"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+brief = "The active state of digital output DO1 on CN1. P06-21 sets its function."
+choices = [
+  { value = 0, label = "Optocoupler off when active" },
+  { value = 1, label = "Optocoupler on when active" },
+]
+
+[[param]]
+code = "P06-21"
+name = "DO1 function"
+min = 0
+max = 13
+default = 3
+applies = "power-cycle"
+brief = "The function of digital output DO1 on CN1. P06-20 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Alarm" },
+  { value = 2, label = "Holding brake release" },
+  { value = 3, label = "Servo ready" },
+  { value = 4, label = "In position" },
+  { value = 5, label = "Near position" },
+  { value = 6, label = "Speed match" },
+  { value = 7, label = "Zero speed" },
+  { value = 8, label = "Torque limit active" },
+  { value = 9, label = "Speed limit active" },
+  { value = 10, label = "Warning" },
+  { value = 11, label = "Pulse multiplier active" },
+  { value = 12, label = "Homing complete" },
+  { value = 13, label = "Electrical homing complete" },
+]
+
+[[param]]
+code = "P06-22"
+name = "DO2 active state"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+brief = "The active state of digital output DO2 on CN1. P06-23 sets its function."
+choices = [
+  { value = 0, label = "Optocoupler off when active" },
+  { value = 1, label = "Optocoupler on when active" },
+]
+
+[[param]]
+code = "P06-23"
+name = "DO2 function"
+min = 0
+max = 2
+default = 2
+applies = "power-cycle"
+brief = "The function of digital output DO2 on CN1. P06-22 sets its active state. This output accepts only functions 0 to 2."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Alarm" },
+  { value = 2, label = "Holding brake release" },
+]
+
+[[param]]
+code = "P06-24"
+name = "DO3 active state"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+brief = "The active state of digital output DO3 on CN1. P06-25 sets its function."
+choices = [
+  { value = 0, label = "Optocoupler off when active" },
+  { value = 1, label = "Optocoupler on when active" },
+]
+
+[[param]]
+code = "P06-25"
+name = "DO3 function"
+min = 0
+max = 13
+default = 1
+applies = "power-cycle"
+brief = "The function of digital output DO3 on CN1. P06-24 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Alarm" },
+  { value = 2, label = "Holding brake release" },
+  { value = 3, label = "Servo ready" },
+  { value = 4, label = "In position" },
+  { value = 5, label = "Near position" },
+  { value = 6, label = "Speed match" },
+  { value = 7, label = "Zero speed" },
+  { value = 8, label = "Torque limit active" },
+  { value = 9, label = "Speed limit active" },
+  { value = 10, label = "Warning" },
+  { value = 11, label = "Pulse multiplier active" },
+  { value = 12, label = "Homing complete" },
+  { value = 13, label = "Electrical homing complete" },
+]
+
+[[param]]
+code = "P06-26"
+name = "DO4 active state"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+brief = "The active state of digital output DO4 on CN1. P06-27 sets its function."
+choices = [
+  { value = 0, label = "Optocoupler off when active" },
+  { value = 1, label = "Optocoupler on when active" },
+]
+
+[[param]]
+code = "P06-27"
+name = "DO4 function"
+min = 0
+max = 13
+default = 4
+applies = "power-cycle"
+brief = "The function of digital output DO4 on CN1. P06-26 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Alarm" },
+  { value = 2, label = "Holding brake release" },
+  { value = 3, label = "Servo ready" },
+  { value = 4, label = "In position" },
+  { value = 5, label = "Near position" },
+  { value = 6, label = "Speed match" },
+  { value = 7, label = "Zero speed" },
+  { value = 8, label = "Torque limit active" },
+  { value = 9, label = "Speed limit active" },
+  { value = 10, label = "Warning" },
+  { value = 11, label = "Pulse multiplier active" },
+  { value = 12, label = "Homing complete" },
+  { value = 13, label = "Electrical homing complete" },
+]
+
+[[param]]
+code = "P06-28"
+name = "DO5 active state"
+min = 0
+max = 1
+default = 1
+applies = "power-cycle"
+brief = "The active state of digital output DO5 on CN1. P06-29 sets its function."
+choices = [
+  { value = 0, label = "Optocoupler off when active" },
+  { value = 1, label = "Optocoupler on when active" },
+]
+
+[[param]]
+code = "P06-29"
+name = "DO5 function"
+min = 0
+max = 13
+default = 8
+applies = "power-cycle"
+brief = "The function of digital output DO5 on CN1. P06-28 sets its active state."
+choices = [
+  { value = 0, label = "Not used" },
+  { value = 1, label = "Alarm" },
+  { value = 2, label = "Holding brake release" },
+  { value = 3, label = "Servo ready" },
+  { value = 4, label = "In position" },
+  { value = 5, label = "Near position" },
+  { value = 6, label = "Speed match" },
+  { value = 7, label = "Zero speed" },
+  { value = 8, label = "Torque limit active" },
+  { value = 9, label = "Speed limit active" },
+  { value = 10, label = "Warning" },
+  { value = 11, label = "Pulse multiplier active" },
+  { value = 12, label = "Homing complete" },
+  { value = 13, label = "Electrical homing complete" },
+]
+
+[[param]]
+code = "P06-40"
+name = "Speed analog input gain"
+unit = "rpm/V"
+min = 10
+max = 2000
+default = 300
+applies = "now"
+brief = "The speed command for each volt on the analog speed input. For example, 500 means 500 rpm per volt."
+
+[[param]]
+code = "P06-41"
+name = "Speed analog input filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 6400
+default = 80
+applies = "now"
+brief = "A low-pass filter on the analog speed input."
+
+[[param]]
+code = "P06-42"
+name = "Speed analog input offset"
+unit = "V"
+decimals = 3
+signed = true
+min = -10000
+max = 10000
+default = 0
+applies = "now"
+brief = "The zero offset of the analog speed input."
+
+[[param]]
+code = "P06-43"
+name = "Torque analog input gain"
+unit = "%/V"
+decimals = 1
+min = 0
+max = 1000
+default = 100
+applies = "now"
+brief = "The torque command for each volt on the analog torque input, in percent of rated torque. For example, 30 means 30 % per volt."
+
+[[param]]
+code = "P06-44"
+name = "Torque analog input filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 6400
+default = 80
+applies = "now"
+brief = "A low-pass filter on the analog torque input."
+
+[[param]]
+code = "P06-45"
+name = "Torque analog input offset"
+unit = "V"
+decimals = 3
+signed = true
+min = -10000
+max = 10000
+default = 0
+applies = "now"
+brief = "The zero offset of the analog torque input."
+
+[[param]]
+code = "P06-46"
+name = "Speed analog input dead band"
+unit = "V"
+decimals = 3
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "The drive reads an analog speed input between minus and plus this voltage as zero."
+
+[[param]]
+code = "P06-47"
+name = "Torque analog input dead band"
+unit = "V"
+decimals = 3
+min = 0
+max = 10000
+default = 0
+applies = "now"
+brief = "The drive reads an analog torque input between minus and plus this voltage as zero."
+
+[[param]]
+code = "P06-50"
+name = "Screwdriver start signal"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects the start signal for the screwdriver sequence."
+choices = [
+  { value = 0, label = "Separate start input (edge)" },
+  { value = 1, label = "Servo on is the start (level)" },
+]
+
+[[param]]
+code = "P06-51"
+name = "Screwdriver complete output"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Selects when the drive sets the complete output in the screwdriver sequence."
+choices = [
+  { value = 0, label = "After all steps and the back-off" },
+  { value = 1, label = "After step 3, and again after the back-off" },
+]
+
+[[param]]
+code = "P08-01"
+name = "Inertia identification"
+min = 0
+max = 1
+default = 0
+applies = "now"
+brief = "Turns the load inertia identification on or off. Note that 0 is on."
+choices = [
+  { value = 0, label = "On" },
+  { value = 1, label = "Off" },
+]
+
+[[param]]
+code = "P08-02"
+name = "Inertia identification speed"
+unit = "rpm"
+min = 100
+max = 2000
+default = 800
+applies = "now"
+brief = "The maximum motor speed during offline inertia identification."
+
+[[param]]
+code = "P08-03"
+name = "Inertia identification ramp time"
+unit = "ms"
+min = 20
+max = 800
+default = 100
+applies = "now"
+brief = "The acceleration and deceleration time during offline inertia identification."
+
+[[param]]
+code = "P08-04"
+name = "Inertia identification wait time"
+unit = "ms"
+min = 50
+max = 10000
+default = 1000
+applies = "now"
+brief = "The wait time after each run of the offline inertia identification."
+
+[[param]]
+code = "P08-05"
+name = "Inertia identification turns"
+unit = "turns"
+decimals = 2
+min = 0
+max = 65535
+default = 133
+applies = "read-only"
+brief = "The number of motor turns for one identification run. The drive calculates it from P08-02, P08-03 and P08-04."
+
+[[param]]
+code = "P08-11"
+name = "Adaptive notch mode"
+min = 0
+max = 4
+default = 0
+applies = "now"
+brief = "Selects the adaptive notch function. The adaptive notch finds a resonance and sets notch filter 3, or notch filters 3 and 4, to suppress it."
+choices = [
+  { value = 0, label = "Off (keep notch 3 and 4 values)" },
+  { value = 1, label = "One adaptive notch (notch 3)" },
+  { value = 2, label = "Two adaptive notches (notch 3 and 4)" },
+  { value = 3, label = "Detect resonance only" },
+  { value = 4, label = "Reset notch 3 and 4 to factory values" },
+]
+
+[[param]]
+code = "P08-13"
+name = "Adaptive notch sensitivity"
+min = 1
+max = 7
+default = 4
+applies = "now"
+brief = "The vibration level at which the adaptive notch operates. A lower value detects smaller vibration."
+
+[[param]]
+code = "P08-19"
+name = "Speed feedback filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 2500
+default = 80
+applies = "now"
+brief = "A low-pass filter on the speed feedback. Increase it if the motor makes a high-pitched noise. Too high a value adds delay."
+
+[[param]]
+code = "P08-20"
+name = "Torque command filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 2500
+default = 80
+applies = "now"
+brief = "The time constant of the torque command filter. Increase it if the motor makes a high-pitched noise. Too high a value adds delay. Auto-tuning (P01-02) sets this value."
+
+[[param]]
+code = "P08-21"
+name = "Torque command filter, low speed"
+unit = "ms"
+decimals = 2
+min = 0
+max = 2500
+default = 80
+applies = "now"
+brief = "The time constant of the torque command filter at low speed. The speed at which the drive uses it is not documented. Increase it if the motor makes a high-pitched noise at low speed."
+
+[[param]]
+code = "P08-25"
+name = "Disturbance compensation gain"
+unit = "%"
+decimals = 1
+min = 0
+max = 1000
+default = 0
+applies = "now"
+brief = "The gain of the disturbance torque observer. A higher value resists load disturbance better, but can increase noise."
+
+[[param]]
+code = "P08-26"
+name = "Disturbance observer filter"
+unit = "ms"
+decimals = 2
+min = 0
+max = 2500
+default = 80
+applies = "now"
+brief = "A low-pass filter on the disturbance torque observer. A higher value reduces noise, but adds delay and weakens the compensation."
+
+[[param]]
+code = "P08-30"
+name = "Notch filter 1 frequency"
+unit = "Hz"
+min = 50
+max = 5000
+default = 5000
+applies = "now"
+brief = "The center frequency of notch filter 1. 5000 turns the filter off."
+
+[[param]]
+code = "P08-31"
+name = "Notch filter 1 width"
+min = 0
+max = 20
+default = 2
+applies = "now"
+brief = "The width of notch filter 1, relative to its center frequency. A higher value gives a wider notch."
+
+[[param]]
+code = "P08-32"
+name = "Notch filter 1 depth"
+min = 0
+max = 99
+default = 0
+applies = "now"
+brief = "The depth of notch filter 1. 0 gives the deepest notch. A higher value gives a shallower notch."
+
+[[param]]
+code = "P08-33"
+name = "Notch filter 2 frequency"
+unit = "Hz"
+min = 50
+max = 5000
+default = 5000
+applies = "now"
+brief = "The center frequency of notch filter 2. 5000 turns the filter off."
+
+[[param]]
+code = "P08-34"
+name = "Notch filter 2 width"
+min = 0
+max = 20
+default = 2
+applies = "now"
+brief = "The width of notch filter 2, relative to its center frequency. A higher value gives a wider notch."
+
+[[param]]
+code = "P08-35"
+name = "Notch filter 2 depth"
+min = 0
+max = 99
+default = 0
+applies = "now"
+brief = "The depth of notch filter 2. 0 gives the deepest notch. A higher value gives a shallower notch."
+
+[[param]]
+code = "P08-36"
+name = "Notch filter 3 frequency"
+unit = "Hz"
+min = 50
+max = 5000
+default = 5000
+applies = "now"
+brief = "The center frequency of notch filter 3. 5000 turns the filter off. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P08-37"
+name = "Notch filter 3 width"
+min = 0
+max = 20
+default = 2
+applies = "now"
+brief = "The width of notch filter 3, relative to its center frequency. A higher value gives a wider notch. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P08-38"
+name = "Notch filter 3 depth"
+min = 0
+max = 99
+default = 0
+applies = "now"
+brief = "The depth of notch filter 3. 0 gives the deepest notch. A higher value gives a shallower notch. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P08-39"
+name = "Notch filter 4 frequency"
+unit = "Hz"
+min = 50
+max = 5000
+default = 5000
+applies = "now"
+brief = "The center frequency of notch filter 4. 5000 turns the filter off. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P08-40"
+name = "Notch filter 4 width"
+min = 0
+max = 20
+default = 2
+applies = "now"
+brief = "The width of notch filter 4, relative to its center frequency. A higher value gives a wider notch. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P08-41"
+name = "Notch filter 4 depth"
+min = 0
+max = 99
+default = 0
+applies = "now"
+brief = "The depth of notch filter 4. 0 gives the deepest notch. A higher value gives a shallower notch. The adaptive notch (P08-11) can set this value."
+
+[[param]]
+code = "P10-18"
+name = "Drive model"
+min = 0
+max = 10
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P10-20"
+name = "Run time, low part"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "The low 16 bits of the total run time counter. The unit is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P10-21"
+name = "Run time, high part"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "The high 16 bits of the total run time counter. The unit is not documented. Factory setting. Do not change it."
+
+[[param]]
+code = "P10-22"
+name = "Operation authorization"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+[[param]]
+code = "P10-23"
+name = "Parameter version"
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+access = "factory"
+brief = "Factory setting. Do not change it."
+
+# Spare registers: not used, no function. Each block lists the codes that
+# share the same facts.
+
+[[spares]]
+codes = ["P00-06"]
+min = 0
+max = 65535
+default = 0
+applies = "read-only"
+access = "motor"
+
+[[spares]]
+codes = ["P00-18", "P00-35..37", "P00-39", "P01-05", "P01-07..09", "P02-05..09", "P02-17..18"]
+min = 0
+max = 65535
+default = 0
+applies = "read-only"
+change = "servo-off"
+
+[[spares]]
+codes = ["P00-19", "P01-11..19", "P01-25..29", "P01-33..34", "P01-36..39", "P02-02", "P02-21..29", "P02-35..39", "P02-42..49", "P03-08", "P03-24", "P03-26..29", "P03-32..39", "P03-44", "P03-47..49", "P03-54", "P03-56..59", "P03-62..64", "P04-16..29", "P06-14..15", "P06-18..19", "P06-30..39", "P08-06..10", "P08-12", "P08-14..16", "P08-18", "P08-22..24", "P08-27..29"]
+min = 0
+max = 65535
+default = 0
+applies = "read-only"
+
+[[spares]]
+codes = ["P00-34", "P00-38", "P01-06"]
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+change = "servo-off"
+
+[[spares]]
+codes = ["P00-57"]
+min = 0
+max = 1
+default = 0
+applies = "unspecified"
+access = "factory"
+
+[[spares]]
+codes = ["P01-00", "P03-17", "P03-19", "P04-08..09", "P04-13", "P05-04", "P08-00"]
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+
+[[spares]]
+codes = ["P03-18"]
+min = 0
+default = 0
+applies = "unspecified"
+
+[[spares]]
+codes = ["P03-21"]
+min = 0
+max = 1
+default = 1
+applies = "now"
+change = "servo-off"
+
+[[spares]]
+codes = ["P03-71..74", "P10-00..17", "P10-19", "P10-24..30"]
+min = 0
+max = 65535
+default = 0
+applies = "unspecified"
+access = "factory"
+
+[[spares]]
+codes = ["P04-38..50"]
+applies = "unspecified"
+
+[[spares]]
+codes = ["P08-17"]
+decimals = 1
+min = 0
+max = 65535
+default = 0
+applies = "read-only"
+
+# Reserved registers: no function. Each block lists the codes that share
+# the same facts.
+
+[[reserved]]
+codes = ["P00-42..49", "P00-56", "P00-58"]
+applies = "unspecified"
+access = "factory"
+
+[[reserved]]
+codes = ["P01-41..49", "P01-51..56", "P02-53..58", "P05-29"]
+applies = "unspecified"
+
+[[reserved]]
+codes = ["P01-65..69", "P01-71"]
+applies = "unspecified"
+change = "servo-off"
+access = "factory"

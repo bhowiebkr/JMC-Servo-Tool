@@ -1,0 +1,18 @@
+[package]
+name = "jmc"
+description = "Command-line access to JMC servo drives, with JSON output"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+jmc-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

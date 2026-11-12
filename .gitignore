@@ -1,0 +1,6 @@
+/target
+*.log
+# Local notes: plans, the spec draft and machine-specific agent rules.
+/PLAN.md
+/docs/SPEC.md
+/AGENTS.local.md

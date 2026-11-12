@@ -1,0 +1,2 @@
+# Keep XML byte for byte (the drive parameter files mix CRLF and LF).
+*.xml -text
