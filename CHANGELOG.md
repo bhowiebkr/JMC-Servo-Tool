@@ -4,6 +4,8 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-12
+
 Fixes from a review of the tool, the parameter table and the help pages. Tested against a simulated drive only.
 
 ### Added
@@ -71,6 +73,7 @@ First public version. Tested against a simulated drive and real JMC 2.4.3 export
 - Simulated drive for every command and for the window.
 - Snapshot file format `jmc-servo-tool/snapshot/1`.
 
-[Unreleased]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/releases/tag/v0.1.0
