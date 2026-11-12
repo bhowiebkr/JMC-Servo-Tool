@@ -28,6 +28,10 @@ Planned: a local API, an MCP server for AI agents, and a bridge to LinuxCNC for 
 - A help window for every parameter, with drawings of its effect (see [Help pages](#help-pages-and-drawings)).
 - Its own parameter table and help text, written for this project.
 
+## Download
+
+Windows builds are on the [Releases](https://github.com/bhowiebkr/JMC-Servo-Tool/releases) page. Unzip the file and run `jmc-servo-tool.exe` (the window) or `jmc.exe` (the command line). There is no installer. The programs are not signed, so Windows can show a warning the first time.
+
 ## Build
 
 Rust 1.97.1 (pinned in `rust-toolchain.toml`). Windows 10 or 11.
@@ -66,12 +70,14 @@ What the window does not do, on purpose:
 
 ## Help pages and drawings
 
-**More...** opens a help window for the selected parameter. Each page has:
+**More...**, a double-click on a row, or Enter opens a help window for the selected parameter. The up and down arrow keys move through the rows. Each page has:
 
 - The facts: register address, unit, range, default, the value in the drive, and when a change applies.
 - A drawing of what the parameter does. Examples: the step response of the speed loop, the frequency response of a filter or notch, a ramp, a limit or an alarm level. The drawing shows the value in the drive against the default. **Try a value** adds a third curve. It changes the drawing only; nothing goes to the drive.
-- What the parameter does, its effect and how to set it, for the tuning parameters.
-- Links. Each parameter code in the text opens that parameter's page. Back and Forward work like a browser. Topic pages explain how the parts work together: the control loops, the filters and the gain sets.
+- A text for a reader who is new to servo drives. "In plain words" first gives an everyday picture of what the parameter does. Then the page tells how it works, what a change does, and what it means on a CNC machine.
+- Links. Each parameter code in the text opens that parameter's page. Back and Forward work like a browser. Topic pages explain how the parts work together, from how a servo drive works to tuning and protection.
+
+The table hides the factory parameters and the spare slots. The **View** menu shows them again.
 
 ![The help window for the load inertia ratio](docs/images/more-window.png)
 
@@ -170,6 +176,26 @@ The window tests draw frames without a window. To look at the window and the hel
 ```bash
 JMC_SHOTS=shots cargo test -p jmc-servo-tool more_window_pictures -- --ignored
 ```
+
+## Versions
+
+The version numbers follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. [CHANGELOG.md](CHANGELOG.md) lists the changes in each version. Each version has a git tag, for example `v0.1.0`. `jmc --version` and the top bar of the window show the version.
+
+These are the parts that a version number promises to keep:
+
+- The `jmc` commands, their options, and the fields in their JSON output. Scripts and agents depend on them.
+- The snapshot file format. Its own version is in the `format` field (`jmc-servo-tool/snapshot/1`). It changes only when older files cannot be read, and the tool keeps reading older files where it can.
+- Import and export of JMC 2.4.3 parameter files.
+- The environment variables.
+
+The layout of the window, the help text and the drawings can change in any version.
+
+While the version is 0.x, the tool is not yet tested on a real drive:
+
+- A MINOR change (0.1 to 0.2) can add features or break one of the parts above. The changelog says what broke.
+- A PATCH change (0.1.0 to 0.1.1) has fixes only.
+
+Version 1.0.0 comes after the first checks on real drives. After that, only a MAJOR change can break one of the parts above.
 
 ## License
 

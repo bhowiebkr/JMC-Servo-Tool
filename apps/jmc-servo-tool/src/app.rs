@@ -91,6 +91,7 @@ pub struct App {
     pub group: Option<u8>,
     pub only_changed: bool,
     pub show_spares: bool,
+    pub show_factory: bool,
     pub selected: Option<String>,
     pub edit_text: String,
     pub pending_write: Option<PendingWrite>,
@@ -135,6 +136,7 @@ impl App {
             group: None,
             only_changed: false,
             show_spares: false,
+            show_factory: false,
             selected: None,
             edit_text: String::new(),
             pending_write: None,
@@ -528,6 +530,8 @@ impl App {
             .show(root, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("JMC Servo Tool").size(17.0).strong());
+                    ui.label(RichText::new(concat!("v", env!("CARGO_PKG_VERSION"))).size(12.0).color(theme::TEXT_DIM))
+                        .on_hover_text("Version of this tool. See CHANGELOG.md for what changed.");
                     ui.add_space(16.0);
                     ui.selectable_value(&mut self.tab, Tab::Parameters, "Parameters");
                     ui.selectable_value(&mut self.tab, Tab::Live, "Live");

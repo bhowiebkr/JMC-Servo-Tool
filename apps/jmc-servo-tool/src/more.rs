@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use eframe::egui::{self, RichText};
 use jmc_core::docs::{self, Kind, Target};
-use jmc_core::params::{ParamDef, Schema};
+use jmc_core::params::{Access, ParamDef, Schema};
 
 use crate::app::{App, Tab};
 use crate::drawing::{self, Curve, Input, Role};
@@ -160,6 +160,13 @@ impl App {
                 Action::Select(code) => {
                     if let Ok(d) = self.schema.get(&code) {
                         self.tab = Tab::Parameters;
+                        // A hidden row cannot be selected: show the kind of row the user asked for.
+                        if d.access == Access::Factory {
+                            self.show_factory = true;
+                        }
+                        if d.placeholder() {
+                            self.show_spares = true;
+                        }
                         self.select(d);
                     }
                 }
@@ -228,6 +235,7 @@ impl App {
         let s = 10f64.powi(i32::from(def.decimals));
 
         ui.label(RichText::new(format!("{}  {}", def.code, def.name)).size(20.0).strong());
+        group_line(ui, def, actions);
         ui.add_space(4.0);
         facts(ui, def, &self.values);
         ui.add_space(8.0);
@@ -282,16 +290,10 @@ impl App {
                     ui.label(RichText::new(format!("{} = {}", def.format_value(c.value), c.label)).color(theme::TEXT_DIM));
                 }
             }
-            match page {
-                Some(p) if !p.body.is_empty() => {
-                    ui.add_space(4.0);
-                    if let Some(t) = markdown::show(ui, schema, &p.body) {
-                        actions.extend(go(t));
-                    }
-                }
-                _ => {
-                    ui.add_space(2.0);
-                    ui.label(RichText::new("There is no longer page for this parameter yet.").small().italics().color(theme::TEXT_DIM));
+            if let Some(p) = page.filter(|p| !p.body.is_empty()) {
+                ui.add_space(4.0);
+                if let Some(t) = markdown::show(ui, schema, &p.body) {
+                    actions.extend(go(t));
                 }
             }
         });
@@ -324,6 +326,27 @@ impl App {
         });
         links(ui, schema, key, &page.see, actions);
     }
+}
+
+/// The group of a parameter, with links to the page that explains the group and to the start
+/// page for beginners.
+fn group_line(ui: &mut egui::Ui, def: &ParamDef, actions: &mut Vec<Action>) {
+    ui.horizontal_wrapped(|ui| {
+        ui.label(RichText::new(format!("Group P{:02}", def.group)).color(theme::TEXT_DIM));
+        if let Some(p) = docs::group_topic(def.group) {
+            ui.label(RichText::new("·").color(theme::TEXT_DIM));
+            let title = p.title.clone().unwrap_or_else(|| p.key.clone());
+            if ui.link(RichText::new(title).color(theme::ACCENT)).on_hover_text("How this group of settings works").clicked() {
+                actions.push(Action::Go(p.key.clone()));
+            }
+        }
+        if docs::page("topic:basics").is_some() {
+            ui.label(RichText::new("·  New to servo drives?").color(theme::TEXT_DIM));
+            if ui.link(RichText::new("How a servo drive works").color(theme::ACCENT)).clicked() {
+                actions.push(Action::Go("topic:basics".into()));
+            }
+        }
+    });
 }
 
 /// Code, unit, range, default, value and when a change takes effect.

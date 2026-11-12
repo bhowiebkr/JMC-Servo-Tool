@@ -1,8 +1,15 @@
 ---
 title: Gain sets
-see: P02-30 P02-00 P02-01 P01-02
+order: 55
+see: P02-30 P02-00 P02-01 P01-02 topic:control-loops
 ---
 The drive keeps two sets of loop gains. It can change between them while it runs. For example, it can use one set during moves and a different set at a stop.
+
+## In plain words
+
+A good setting for moves is not always a good setting at a stop. During a move, you want a quick, lively response that follows the path. At a stop, you want the axis to hold firmly and quietly. Two gain sets let the drive behave in a different way in each case.
+
+## The two sets
 
 | Gain | Set 1 | Set 2 |
 |---|---|---|

@@ -25,7 +25,7 @@ use eframe::egui;
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("JMC Servo Tool")
+            .with_title(concat!("JMC Servo Tool ", env!("CARGO_PKG_VERSION")))
             // Start maximized: the tables want the room, and 1360x840 runs off a 1080p screen at 125%.
             .with_maximized(true)
             .with_inner_size([1280.0, 760.0])

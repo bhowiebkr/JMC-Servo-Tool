@@ -1,14 +1,21 @@
 ---
 title: Filters
-see: topic:control-loops P08-20 P08-30 P08-11
+order: 57
+see: topic:control-loops topic:vibration P08-20 P08-30 P08-11
 ---
 The drive has two types of filter. A low-pass filter removes fast changes. A notch filter removes one frequency.
+
+## In plain words
+
+A low-pass filter works like the suspension of a car. It smooths the quick bumps, and the slow hills still come through. A notch filter works like a sound engineer who turns down one tone that hums, and leaves all the other tones alone.
+
+Every filter has a cost: a delay. A loop that reacts late can overshoot and start to oscillate. So use the smallest filter that removes the problem.
 
 ## Low-pass filters
 
 A first-order low-pass filter has a time constant T. After a step, the output gets to 63 % of the step after one time constant. It gets to 95 % after three time constants.
 
-The corner frequency is 1 ÷ (2π × T). Above the corner frequency, the filter decreases the signal more and more.
+The corner frequency is 1 ÷ (2π × T). Above the corner frequency, the filter decreases the signal more and more. For example, a time constant of 0.8 ms gives a corner frequency of approximately 200 Hz.
 
 | Parameter | What it filters |
 |---|---|

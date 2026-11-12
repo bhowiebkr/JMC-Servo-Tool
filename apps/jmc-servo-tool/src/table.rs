@@ -14,6 +14,8 @@ pub struct Filter<'a> {
     pub group: Option<u8>,
     pub only_changed: bool,
     pub show_spares: bool,
+    /// Factory parameters: the maker sets them and the tool never writes them. Hidden unless asked for.
+    pub show_factory: bool,
 }
 
 /// Parameters that pass the filter, in table order.
@@ -23,6 +25,7 @@ pub fn rows(schema: &'static Schema, values: &Values, compare: Option<&Compare>,
     schema
         .real()
         .filter(|d| f.show_spares || !d.placeholder())
+        .filter(|d| f.show_factory || d.access != Access::Factory)
         .filter(|d| f.group.is_none_or(|g| d.group == g))
         .filter(|d| {
             search.is_empty()
@@ -82,7 +85,13 @@ impl App {
             self.schema,
             &self.values,
             compare.as_ref(),
-            &Filter { search: &self.search, group: self.group, only_changed: self.only_changed, show_spares: self.show_spares },
+            &Filter {
+                search: &self.search,
+                group: self.group,
+                only_changed: self.only_changed,
+                show_spares: self.show_spares,
+                show_factory: self.show_factory,
+            },
         );
         self.table(ui, &rows, compare.as_ref());
     }
@@ -153,22 +162,79 @@ impl App {
                 }
             });
             ui.add_enabled(has_compare, egui::Checkbox::new(&mut self.only_changed, "Only differences"));
-            ui.checkbox(&mut self.show_spares, "Spare slots")
-                .on_hover_text("Show the spare registers. They read as values but have no function.");
+            self.view_menu(ui);
         });
+    }
+
+    /// The View menu: the parameters that most people never need, hidden unless asked for.
+    fn view_menu(&mut self, ui: &mut egui::Ui) {
+        let factory = self.schema.real().filter(|d| d.access == Access::Factory).count();
+        let spares = self.schema.real().filter(|d| d.placeholder()).count();
+        let hidden: usize = [(self.show_factory, factory), (self.show_spares, spares)]
+            .iter()
+            .filter(|(shown, _)| !shown)
+            .map(|(_, n)| n)
+            .sum();
+        let config = egui::containers::menu::MenuConfig::new().close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside);
+        let (button, _) = egui::containers::menu::MenuButton::new("View").config(config).ui(ui, |ui| {
+            ui.checkbox(&mut self.show_factory, format!("Factory parameters ({factory})")).on_hover_text(
+                "Settings that the maker sets at the factory, such as the current sensor calibration. \
+                 The tool never writes them. Show them only to look at them.",
+            );
+            ui.checkbox(&mut self.show_spares, format!("Spare slots ({spares})"))
+                .on_hover_text("Registers with no function. They read as values but do nothing.");
+        });
+        button.on_hover_text("Choose which parameters the table shows");
+        if hidden > 0 {
+            ui.label(RichText::new(format!("{hidden} hidden")).small().color(theme::TEXT_DIM))
+                .on_hover_text("Factory parameters and spare slots. Show them with the View menu.");
+        }
+    }
+
+    /// Up and Down move the selection one row, and Enter opens the help page of the selected row.
+    /// Only when no text box or other widget has the keyboard: then the keys are theirs.
+    fn table_keys(&self, ui: &egui::Ui) -> (i64, bool) {
+        if ui.ctx().egui_wants_keyboard_input() {
+            return (0, false);
+        }
+        ui.input_mut(|i| {
+            let down = i.count_and_consume_key(egui::Modifiers::NONE, egui::Key::ArrowDown) as i64;
+            let up = i.count_and_consume_key(egui::Modifiers::NONE, egui::Key::ArrowUp) as i64;
+            let enter = i.consume_key(egui::Modifiers::NONE, egui::Key::Enter);
+            (down - up, enter)
+        })
     }
 
     fn table(&mut self, ui: &mut egui::Ui, rows: &[&'static ParamDef], compare: Option<&Compare>) {
         let mut clicked = None;
+        let mut open = None;
         let compare_title = self.compare_title();
+        let current = self.selected.as_deref().and_then(|c| rows.iter().position(|d| d.code == c));
+        let (step, enter) = self.table_keys(ui);
+        let moved = (step != 0 && !rows.is_empty()).then(|| {
+            let last = rows.len() as i64 - 1;
+            match current {
+                Some(i) => (i as i64 + step).clamp(0, last) as usize,
+                None if step > 0 => 0,
+                None => last as usize,
+            }
+        });
+        if enter && let Some(i) = current {
+            open = Some(rows[i]);
+        }
         // Plain labels, so a click anywhere on a row selects it; selectable text would take the click.
         ui.style_mut().interaction.selectable_labels = false;
         // No gaps between rows: the stripes join up and more rows fit.
         ui.spacing_mut().item_spacing.y = 0.0;
-        TableBuilder::new(ui)
+        let mut builder = TableBuilder::new(ui);
+        if let Some(i) = moved {
+            builder = builder.scroll_to_row(i, None);
+        }
+        builder
             .id_salt("params")
             .striped(true)
-            .sense(egui::Sense::click())
+            // Clicks only, no keyboard focus: a focused row would make egui move the focus with the arrow keys.
+            .sense(egui::Sense::CLICK)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
             .column(Column::exact(64.0))
             .column(Column::initial(250.0).at_least(120.0).clip(true).resizable(true))
@@ -226,13 +292,23 @@ impl App {
                     row.col(|ui| {
                         ui.label(RichText::new(d.range_text()).color(theme::TEXT_DIM));
                     });
-                    if row.response().clicked() {
+                    let response = row.response();
+                    if response.double_clicked() {
+                        open = Some(d);
+                    } else if response.clicked() {
                         clicked = Some(d);
                     }
                 });
             });
+        if let Some(i) = moved {
+            self.select(rows[i]);
+        }
         if let Some(d) = clicked {
             self.select(d);
+        }
+        if let Some(d) = open {
+            self.select(d);
+            self.more.show(&d.code);
         }
     }
 
@@ -274,6 +350,15 @@ impl App {
                         Some(d) => self.detail(ui, d),
                         None => {
                             ui.label(RichText::new("Click a parameter to see it here.").color(theme::TEXT_DIM));
+                            ui.add_space(4.0);
+                            ui.label(
+                                RichText::new(
+                                    "Double-click a row, or press Enter, to open its help page. \
+                                     The Up and Down keys move through the rows.",
+                                )
+                                .small()
+                                .color(theme::TEXT_DIM),
+                            );
                         }
                     }
                 });
@@ -347,7 +432,11 @@ impl App {
             ui.horizontal(|ui| {
                 theme::heading(ui, "About");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("More…").on_hover_text("The full page: drawing, links and \"Try a value\"").clicked() {
+                    if ui
+                        .button("More…")
+                        .on_hover_text("The full help page: what it does, a drawing and links. Or double-click the row, or press Enter.")
+                        .clicked()
+                    {
                         self.more.show(&d.code);
                     }
                 });

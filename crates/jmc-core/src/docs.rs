@@ -202,6 +202,10 @@ pub struct Page {
     pub key: String,
     /// Topic pages only. A parameter page takes its title from the table.
     pub title: Option<String>,
+    /// Topic pages only: the parameter group (0 to 10) that the topic explains.
+    pub group: Option<u8>,
+    /// Topic pages only: the place in the Topics menu. Lower numbers come first.
+    pub order: Option<u16>,
     pub drawing: Option<Drawing>,
     pub see: Vec<Target>,
     /// Markdown.
@@ -224,7 +228,8 @@ impl Page {
 /// Parse a page. `key` is the code or `topic:<name>`.
 pub fn parse(key: &str, text: &str) -> Result<Page, String> {
     let text = text.strip_prefix('\u{FEFF}').unwrap_or(text).replace("\r\n", "\n");
-    let mut page = Page { key: key.to_string(), title: None, drawing: None, see: Vec::new(), body: String::new() };
+    let mut page =
+        Page { key: key.to_string(), title: None, group: None, order: None, drawing: None, see: Vec::new(), body: String::new() };
     let body = if let Some(rest) = text.strip_prefix("---\n") {
         let end = rest.find("\n---\n").map(|i| (i, i + 5)).or_else(|| rest.strip_suffix("\n---").map(|r| (r.len(), rest.len())));
         let (end, after) = end.ok_or("front matter has no closing ---")?;
@@ -233,6 +238,8 @@ pub fn parse(key: &str, text: &str) -> Result<Page, String> {
             let v = v.trim();
             match k.trim() {
                 "title" => page.title = Some(v.to_string()),
+                "group" => page.group = Some(v.parse().ok().filter(|g| *g <= 10).ok_or_else(|| format!("group: not 0 to 10: {v:?}"))?),
+                "order" => page.order = Some(v.parse().map_err(|_| format!("order: not a number: {v:?}"))?),
                 "drawing" => page.drawing = Some(Drawing::parse(v)?),
                 "see" => {
                     for w in v.split_whitespace() {
@@ -253,6 +260,8 @@ pub fn parse(key: &str, text: &str) -> Result<Page, String> {
         }
     } else if page.title.is_some() {
         return Err("a parameter page takes its title from the table, not from title:".into());
+    } else if page.group.is_some() || page.order.is_some() {
+        return Err("group: and order: are for topic pages".into());
     }
     if Target::parse(key).is_none_or(|t| matches!(t, Target::Web(_))) {
         return Err(format!("{key:?} is not a parameter code or topic:<name>"));
@@ -340,9 +349,22 @@ pub fn backlinks(key: &str) -> &'static [String] {
     index().backlinks.get(key).map(Vec::as_slice).unwrap_or(&[])
 }
 
-/// The topic pages, in key order.
+/// The topic pages, in reading order: by `order:`, then by key.
 pub fn topics() -> impl Iterator<Item = &'static Page> {
-    index().pages.iter().filter(|p| p.key.starts_with("topic:"))
+    static ORDER: OnceLock<Vec<&'static Page>> = OnceLock::new();
+    ORDER
+        .get_or_init(|| {
+            let mut v: Vec<&'static Page> = index().pages.iter().filter(|p| p.key.starts_with("topic:")).collect();
+            v.sort_by_key(|p| (p.order.unwrap_or(u16::MAX), p.key.as_str()));
+            v
+        })
+        .iter()
+        .copied()
+}
+
+/// The topic page that explains parameter group `n`.
+pub fn group_topic(n: u8) -> Option<&'static Page> {
+    topics().find(|p| p.group == Some(n))
 }
 
 /// The drawing for a parameter: the page's choice, else the one chosen here, else a gauge or the
@@ -447,6 +469,20 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Every parameter that the main table shows has its own help page. Factory settings and
+    /// spare or reserved registers are hidden by default, so they do not need one.
+    #[test]
+    fn every_visible_parameter_has_a_page() {
+        let missing: Vec<&str> = Schema::model512()
+            .params
+            .iter()
+            .filter(|d| d.access != crate::params::Access::Factory && !d.placeholder())
+            .filter(|d| page(&d.code).is_none())
+            .map(|d| d.code.as_str())
+            .collect();
+        assert!(missing.is_empty(), "parameters without a page: {missing:?}");
     }
 
     #[test]
@@ -564,6 +600,11 @@ mod tests {
         assert!(parse("P02-10", "---\nsee: nowhere\n---\n").is_err());
         assert!(parse("P02-10", "---\ndrawing: notch\n").is_err());
         assert!(parse("topic:x", "---\r\ntitle: X\r\n---\r\nBody.\r\n").is_ok());
+        let t = parse("topic:x", "---\ntitle: X\ngroup: 3\norder: 20\n---\n").unwrap();
+        assert_eq!((t.group, t.order), (Some(3), Some(20)));
+        assert!(parse("topic:x", "---\ntitle: X\ngroup: 11\n---\n").is_err());
+        assert!(parse("topic:x", "---\ntitle: X\norder: first\n---\n").is_err());
+        assert!(parse("P02-10", "---\ngroup: 2\n---\n").is_err());
     }
 
     #[test]

@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use eframe::egui;
 use jmc_core::drive::{Drive, Persist, WriteOptions};
 use jmc_core::link::Link;
-use jmc_core::params::Schema;
+use jmc_core::params::{Access, Schema};
 use jmc_core::sim::SimDrive;
 use jmc_core::snapshot::Snapshot;
 
@@ -199,6 +199,7 @@ fn every_view_draws() {
     app.select(Schema::model512().get("P01-01").unwrap());
     app.confirm_reset = true;
     app.show_spares = true;
+    app.show_factory = true;
     app.search = "gain".into();
     for _ in 0..3 {
         frame(&ctx, &mut app);
@@ -253,6 +254,41 @@ fn clicking_a_row_text_selects_it() {
     frame_with(&ctx, &mut app, vec![press(false)]);
     frame_with(&ctx, &mut app, vec![]);
     assert_eq!(app.selected.as_deref(), Some("P02-00"));
+    assert!(!app.more.open, "one click only selects");
+
+    // A second click straight after makes a double-click: it opens the help page of the row.
+    frame_with(&ctx, &mut app, vec![press(true)]);
+    frame_with(&ctx, &mut app, vec![press(false)]);
+    frame_with(&ctx, &mut app, vec![egui::Event::PointerGone]);
+    assert!(app.more.open, "a double-click opens the help window");
+    assert_eq!(app.more.current(), Some("P02-00"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn arrow_keys_move_through_the_rows() {
+    let dir = temp_dir("keys");
+    let (ctx, mut app) = sim_app(&dir);
+    app.search = "P02-0".into();
+    let f = Filter { search: &app.search, group: None, only_changed: false, show_spares: false, show_factory: false };
+    let codes: Vec<String> = rows(app.schema, &app.values, None, &f).iter().map(|d| d.code.clone()).collect();
+    assert!(codes.len() > 3 && codes[0] == "P02-00");
+    let key = |key| egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
+    frame_with(&ctx, &mut app, vec![]);
+    frame_with(&ctx, &mut app, vec![key(egui::Key::ArrowDown)]);
+    assert_eq!(app.selected.as_deref(), Some("P02-00"), "Down with nothing selected takes the first row");
+    frame_with(&ctx, &mut app, vec![key(egui::Key::ArrowDown), key(egui::Key::ArrowDown)]);
+    assert_eq!(app.selected.as_deref(), Some(codes[2].as_str()));
+    frame_with(&ctx, &mut app, vec![key(egui::Key::ArrowUp)]);
+    assert_eq!(app.selected.as_deref(), Some(codes[1].as_str()));
+    for _ in 0..3 {
+        frame_with(&ctx, &mut app, vec![key(egui::Key::ArrowUp)]);
+    }
+    assert_eq!(app.selected.as_deref(), Some("P02-00"), "the first row stops Up");
+    assert!(!app.more.open);
+    frame_with(&ctx, &mut app, vec![key(egui::Key::Enter)]);
+    assert_eq!(app.more.current(), Some("P02-00"), "Enter opens the help page");
+    assert!(app.more.open);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -276,10 +312,14 @@ fn table_filters() {
     let mut compare = Compare { label: "test".into(), raw: values.raw.clone() };
     *compare.raw.get_mut("P02-00").unwrap() += 1;
     let all = |f: &Filter| rows(schema, &values, Some(&compare), f);
-    let f = Filter { search: "", group: None, only_changed: false, show_spares: false };
+    let f = Filter { search: "", group: None, only_changed: false, show_spares: false, show_factory: false };
     let shown = all(&f);
     assert!(shown.iter().all(|d| !d.placeholder()));
+    assert!(shown.iter().all(|d| d.access != Access::Factory), "factory parameters stay hidden");
     assert!(all(&Filter { show_spares: true, ..f }).len() > shown.len());
+    let factory = all(&Filter { show_factory: true, ..f });
+    assert!(factory.iter().any(|d| d.access == Access::Factory));
+    assert!(all(&Filter { search: "P00-50", ..f }).is_empty(), "a factory parameter stays hidden in a search");
     let one = all(&Filter { search: "p2-0", ..f });
     assert!(one.iter().any(|d| d.code == "P02-00"));
     let exact = all(&Filter { search: "P02-00", ..f });

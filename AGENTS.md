@@ -17,7 +17,7 @@ The drives move the axes of a CNC machine. Bad code or a bad setting can crash a
 |---|---|
 | `crates/jmc-core` | Library: Modbus RTU (`rtu`, `link`), parameter table (`params`), reads and safe writes (`drive`), live values and alarms (`monitor`), JMC export XML (`jmcxml`), snapshots, diffs and axis identification (`snapshot`), the checked write sequence used by every front end (`guard`), simulated drive (`sim`), help pages (`docs`), the loop model for the drawings (`model`), the text rules (`ste`) |
 | `crates/jmc-core/data/model512.toml` | This project's parameter table for model 512: the facts of each register and our own text. It is the source; edit it by hand. `Schema::parse` checks it |
-| `docs/parameters`, `docs/topics` | Help pages in Markdown, built into the program by `crates/jmc-core/build.rs`. Front matter: `see:`, optional `drawing:`, and `title:` for topics |
+| `docs/parameters`, `docs/topics` | Help pages in Markdown, built into the program by `crates/jmc-core/build.rs`. Front matter: `see:`, optional `drawing:`, and `title:`, `group:` and `order:` for topics. Parameter pages use the sections "In plain words", "How it works" and "On your machine". Every parameter that the table shows needs a page (a test checks it) |
 | `apps/jmc` | The `jmc` CLI. `tests/cli.rs` runs the binary against the simulator |
 | `apps/jmc-servo-tool` | The window (eframe/egui). A worker thread owns the drive (`worker`); the window only sends commands and draws events. The help window is `more.rs`, its drawings `drawing.rs`, its Markdown `markdown.rs`. `src/tests.rs` draws frames headless against the simulator |
 
@@ -46,4 +46,5 @@ cargo clippy --workspace --all-targets -- -D warnings
 - **JMC's files:** never add JMC's XML files, JMC's text or decompiled code to the repo. The facts (addresses, limits, scaling, choice values) go in `model512.toml` with our own words.
 - **Text:** names, descriptions and help pages use Simplified Technical English. `jmc_core::ste` checks it (sentences of 25 words or fewer, no banned words, no CJK characters); the tests run it on the table and on every page.
 - **Drawings:** colour carries meaning, one meaning per colour in all drawings, and never colour alone (add labels or line styles). Every model drawing says that it is a model.
+- **Versions:** Semantic Versioning, with one version for all crates in `[workspace.package]` of the root `Cargo.toml`. Add each change to `## [Unreleased]` in `CHANGELOG.md`. Change the version only for a release; the README section "Versions" says what counts as breaking. Tag releases `vX.Y.Z`.
 - **Publishing:** the repo is public. Push only with the user's go-ahead.
