@@ -21,7 +21,7 @@ Tuning means setting the gains so that the axis follows the command closely, wit
 5. Add feedforward. Increase P02-03 in steps of 10 %. The following error during moves becomes smaller. Stop if the axis overshoots at the end of a move.
 6. Remove a resonance. If one frequency causes the noise, use a notch filter or the adaptive notch P08-11. Then you can often raise the stiffness by a few more levels.
 7. Tune by hand only if necessary. Set P01-02 to 0 and adjust the gains yourself. See [Control loops](topic:control-loops) and [Gain sets](topic:gain-sets).
-8. Set the following error alarm. When the tuning is good, set P03-15 to 2 to 3 times the largest following error that you saw. See [Protection and alarms](topic:protection).
+8. Set the following error alarm. When the tuning is good, take 2 to 3 times the largest following error that you saw. The Live tab shows it in command pulses, and P03-15 counts in units of 10 pulses. So divide the number by 10, and set the result in P03-15. See [Protection and alarms](topic:protection).
 9. Save. When you are happy, save the values to EEPROM with the command-line tool. Until then, a power cycle brings back the old values.
 
 ## Signs to look for

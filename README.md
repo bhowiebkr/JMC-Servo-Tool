@@ -23,7 +23,7 @@ Planned: a local API, an MCP server for AI agents, and a bridge to LinuxCNC for 
 
 - Read every parameter, compare the drive with a saved baseline or another file, and save snapshots.
 - Safe writes: range checks, an axis check, a full backup first, and a read-back after each write. RAM by default.
-- Live monitor: following error, speed, torque, load, position and bus voltage, with CSV export.
+- Live monitor: following error, speed, torque, load, position and bus voltage, with CSV export. Positions are in command pulses (the unit of P03-15) and in encoder counts.
 - Import and export JMC 2.4.3 parameter files. JMC 2.4.3 can load the files that this tool writes.
 - A help window for every parameter, with drawings of its effect (see [Help pages](#help-pages-and-drawings)).
 - Its own parameter table and help text, written for this project.
@@ -59,7 +59,7 @@ The programs are `target/release/jmc-servo-tool.exe` (the window) and `target/re
 - **Parameters** tab: every parameter with its value, the baseline value (or another file, with **Compare with**), the default, the unit and the range. Differences are orange. Search, filter by group, or show only differences. **Open file** shows a snapshot or JMC export in place of the drive. **Save snapshot** saves what was read.
 - **Change** (right): select a parameter, type or choose the new value, then click **Write to RAM**. A dialog shows the change first. The write uses the same sequence as `jmc write --axis`: read the whole drive, check that it matches the axis baseline, save a backup, write, read back.
 - **About** (right): a short description of the selected parameter. **More...** opens its help page.
-- **Live** tab: plots the monitor registers every 20 to 250 ms, with a window of 5 to 60 s. **Save CSV** saves the samples.
+- **Live** tab: plots the monitor registers every 20 to 250 ms, with a window of 5 to 60 s. **Save CSV** saves the samples. The position and the following error are in command pulses, the unit of P03-15. The readout also shows them in encoder counts. These units come from JMC's list of the monitor registers and are not yet checked on a drive.
 - Messages and the result of each write go to the log at the bottom. Settings are kept in `%LOCALAPPDATA%\JMC-Servo-Tool\gui.json`.
 
 What the window does not do, on purpose:
@@ -98,7 +98,7 @@ The pages are Markdown files in [docs/parameters](docs/parameters) and [docs/top
 | `write CODE=VALUE... --axis A` | Write parameters (see [Safety](#safety)) | yes |
 | `monitor [--count N] [--interval-ms MS]` | Live position, following error, speed, torque and bus voltage, one JSON line per sample | yes |
 | `status` | Servo on, fault and warning flags, active alarm codes | yes |
-| `reset-alarm --yes` | Clear the alarm of the drive | yes |
+| `reset-alarm --yes` | Clear the alarm of the drive. The reset is sent once, with no retry | yes |
 | `raw-read ADDR [COUNT]` | Read registers by address (decimal or 0x hex) | yes |
 | `bench-read-size` | Find the largest block that the drive answers in one frame | yes |
 | `import-xml FILE [--axis A] [--taken UTC]` | Make a snapshot from a JMC 2.4.3 export | no |
@@ -124,8 +124,13 @@ Errors go to stderr as `{"error": "..."}` with exit code 1.
 
 The drives move the axes of a machine. A wrong setting can crash an axis, rack a gantry or damage parts. So `write` is careful:
 
-1. **RAM by default.** A plain write is lost at power-off. `--save` also writes to EEPROM, and it needs `--yes`. The EEPROM save sets bit 15 of the address, as JMC's tool does. This is not yet confirmed on a real drive.
-2. **Axis check.** `--axis` is necessary. Before it writes, the tool reads every parameter and compares the drive with the saved baselines. If the drive looks like a different axis, nothing is written. `--no-identify-check` skips this check.
+1. **RAM by default.** A plain write is lost at power-off. `--save` also writes to EEPROM, and it needs `--yes`. The EEPROM save sets bit 15 of the address, as JMC's tool does. This is not yet confirmed on a real drive. A parameter that applies only after a power cycle needs `--save`, because the power cycle clears RAM.
+2. **Axis check.** `--axis` is necessary. Before it writes, the tool reads every parameter and compares the drive with the saved baselines. Nothing is written in these cases:
+   - The baseline of another axis matches the drive better.
+   - No baseline of another axis matches the drive less well. The check only ranks the baselines, so it needs a baseline of a second axis to tell the axes apart. Keep a baseline of every axis.
+   - The drive is closer to the factory values than to its own baseline. The drive may have been reset. If you reset it on purpose, save a new baseline.
+
+   `--no-identify-check` skips this check. The window has no way to skip it.
 3. **Backup first.** Each write saves a full snapshot of the drive before it changes anything. A refused write saves nothing.
 4. **Protected parameters are refused**, unless you give `--allow-protected`:
    - motor data and factory parameters
@@ -133,8 +138,9 @@ The drives move the axes of a machine. A wrong setting can crash an axis, rack a
    - parameters that the table marks read-only
    - spare slots
    - Reserved registers are always refused.
-5. **Range checks.** Each value is checked against the range in the table before anything is sent. A code that is given twice in one command is refused.
-6. **Read-back.** Each write is read back. At the first failure, the tool stops and reports what it wrote and what it did not write.
+5. **Range checks.** Each value is checked against the range in the table before anything is sent. If the table lists the values of a parameter, only those values are accepted. A code that is given twice in one command is refused.
+6. **Servo off.** Some parameters change only with the servo off. The table marks them. A write to one of them is refused while the drive reports the servo on. The servo-on bit is not yet checked on a real drive.
+7. **Read-back.** Each write is read back. At the first failure, the tool stops and reports what it wrote and what it did not write. If the drive reads back a different value, the report shows that value.
 
 ## Snapshots and baselines
 

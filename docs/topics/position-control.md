@@ -58,7 +58,7 @@ The following error is the gap between the commanded position and the real posit
 
 With step and direction, LinuxCNC cannot see the real motor position. It sends the steps and trusts the drive. So P03-15 is your only protection if the axis jams, crashes or stalls. Without the alarm, LinuxCNC continues, and the part or the machine can be damaged.
 
-The factory value is 30000. The unit is 10 pulses, so the limit is 300000 pulses. With 10000 pulses for each turn, that is 30 motor turns, which is very loose. A better value is 2 to 3 times the largest following error in your fastest normal move. You can see the following error on the Live tab.
+The factory value is 30000. The unit is 10 pulses, so the limit is 300000 pulses. With 10000 pulses for each turn, that is 30 motor turns, which is very loose. A better value is 2 to 3 times the largest following error in your fastest normal move. The Live tab shows the following error in command pulses, the unit of P03-15. It also shows the error in encoder counts. Do not use that value for P03-15.
 
 ## Command smoothing
 

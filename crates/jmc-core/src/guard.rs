@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::drive::{Drive, Persist, WriteOptions, WriteOutcome};
+use crate::drive::{Drive, Persist, WriteFailure, WriteOptions, WriteOutcome};
 use crate::error::{Error, Result};
 use crate::params::{ParamDef, Schema};
 use crate::snapshot::{self, Snapshot};
@@ -91,6 +91,8 @@ pub struct WriteReport {
     /// The snapshot saved before anything was written.
     pub backup: PathBuf,
     pub results: Vec<WriteOutcome>,
+    /// The item that failed. Its outcome is in `results` when the drive read back a different value.
+    pub failed: Option<String>,
     /// Items after the one that failed.
     pub not_attempted: Vec<String>,
     pub error: Option<String>,
@@ -111,21 +113,41 @@ pub fn guarded_write(d: &mut Drive, req: &WriteRequest, progress: impl FnMut(usi
         seen.push((def, raw));
     }
     let schema = d.schema();
+    let mut warnings = Vec::new();
     // One full read is both the axis check and the backup.
     let before = d.read_all(progress)?;
     let identify = match req.baselines {
         Some(b) => {
             let id = snapshot::identify(schema, &before.values, b);
-            if !id.consistent_with(&axis) {
-                let best = if id.tied.is_empty() { "nothing".to_string() } else { id.tied.join("/") };
-                return Err(Error::Refused(format!(
-                    "this drive does not look like axis {axis}: best match is {best}; nothing written"
-                )));
+            for s in &id.skipped {
+                warnings.push(format!("baseline {} not used: {}", s.file.display(), s.reason));
+            }
+            if let Some(why) = id.refusal(&axis) {
+                return Err(Error::Refused(format!("{why}; nothing written")));
             }
             Some(IdentifySummary { tied: id.tied, baselines: id.candidates.len() })
         }
         None => None,
     };
+    // Range checks now that the current values are known. An unchanged value may sit outside the
+    // table's range; it is still checked before it goes to EEPROM. A refused write saves no backup.
+    let mut servo_off = None;
+    for (def, raw) in &req.items {
+        if before.values.get(&def.code) != Some(raw) || req.opts.persist == Persist::Eeprom {
+            def.check_range(*raw)?;
+            if def.needs_servo_off() {
+                servo_off.get_or_insert(def);
+            }
+        }
+    }
+    if let Some(def) = servo_off
+        && d.status()?.servo_on
+    {
+        return Err(Error::Refused(format!(
+            "{} ({}) changes only with the servo off, and the servo is on: switch the servo off first; nothing written",
+            def.code, def.name
+        )));
+    }
     let mut backup = Snapshot::from_raw(schema, &d.link.label, &before.values);
     backup.axis = Some(axis.clone());
     backup.unread = before.errors.clone();
@@ -135,34 +157,31 @@ pub fn guarded_write(d: &mut Drive, req: &WriteRequest, progress: impl FnMut(usi
         .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("creating {}: {e}", req.backup_dir.display()))))?;
     let backup_path = unique_path(&req.backup_dir, &format!("{axis}-{}", snapshot::stamp_for_file(&backup.taken_utc)));
     backup.save(&backup_path)?;
-    // Range checks now that the current values are known: an unchanged value may sit outside the table's range.
-    for (def, raw) in &req.items {
-        if before.values.get(&def.code) != Some(raw) {
-            def.check_range(*raw)?;
-        }
-    }
 
     let mut results = Vec::new();
     let mut error = None;
+    let mut failed = None;
+    let mut attempted = 0;
     for (def, raw) in &req.items {
-        match d.write_param(def, *raw, req.opts) {
+        attempted += 1;
+        match d.write_param_detailed(def, *raw, req.opts) {
             Ok(o) => results.push(o),
-            Err(e) => {
+            Err(WriteFailure { error: e, outcome }) => {
                 error = Some(format!("{}: {e}", def.code));
+                failed = Some(def.code.clone());
+                results.extend(outcome.map(|o| *o));
                 break;
             }
         }
     }
     let ok = error.is_none();
-    let mut warnings = Vec::new();
     if req.opts.persist == Persist::Eeprom {
         warnings.push("EEPROM save uses address bit 15, unconfirmed: power-cycle the drive and read back to be sure".to_string());
     } else if results.iter().any(|o| o.written) {
         warnings.push("written to RAM only: the drive forgets these at power-off".to_string());
     }
-    let not_attempted =
-        req.items.iter().skip(results.len() + usize::from(!ok)).map(|(p, _)| p.code.clone()).collect();
-    Ok(WriteReport { ok, axis, identify, backup: backup_path, results, not_attempted, error, warnings })
+    let not_attempted = req.items.iter().skip(attempted).map(|(p, _)| p.code.clone()).collect();
+    Ok(WriteReport { ok, axis, identify, backup: backup_path, results, failed, not_attempted, error, warnings })
 }
 
 #[cfg(test)]
@@ -196,6 +215,11 @@ mod tests {
         assert!(e.contains("twice"), "{e}");
         let e = parse_assignments(s, &["P00-21=3".into()], opts).unwrap_err().to_string();
         assert!(e.contains("serial settings"), "{e}");
+        // A power cycle clears RAM: such a write needs an EEPROM save.
+        let e = parse_assignments(s, &["P03-09=5000".into()], opts).unwrap_err().to_string();
+        assert!(e.contains("power cycle"), "{e}");
+        let eeprom = WriteOptions { persist: Persist::Eeprom, allow_protected: false };
+        assert!(parse_assignments(s, &["P03-09=5000".into()], eeprom).is_ok());
         let ok = parse_assignments(s, &["P02-00=520.0".into()], opts).unwrap();
         assert_eq!(ok[0].0.code, "P02-00");
     }
@@ -231,15 +255,66 @@ mod tests {
         assert!(e.contains("best match is X"), "{e}");
         assert!(!dir.join("backups").exists(), "a refused write must not save a backup");
 
+        // Out of range: refused before the backup.
         req.axis = "x".into();
+        let def = schema.get("P02-00").unwrap();
+        assert!(def.max < 65535);
+        req.items = vec![(def, (def.max + 1) as u16)];
+        assert!(matches!(guarded_write(&mut d, &req, |_, _| {}), Err(Error::Value(_))));
+        assert!(!dir.join("backups").exists(), "a refused write must not save a backup");
+
+        req.items = items;
         let r = guarded_write(&mut d, &req, |_, _| {}).unwrap();
         assert!(r.ok, "{r:?}");
         assert_eq!(r.axis, "X");
         assert!(r.backup.exists());
         assert_eq!(r.results.len(), 1);
-        let def = schema.get("P02-00").unwrap();
         assert_eq!(sim.state().ram.get(&def.address).copied(), Some(1234));
         assert!(r.warnings.iter().any(|w| w.contains("RAM only")));
+
+        // A read-back mismatch: the outcome shows the value that the drive kept, and the rest is not tried.
+        let p1 = schema.get("P02-01").unwrap();
+        sim.state().ignore_writes.push(p1.address);
+        req.items = parse_assignments(schema, &["P02-01=99.0".into(), "P02-03=40.0".into()], opts).unwrap();
+        let r = guarded_write(&mut d, &req, |_, _| {}).unwrap();
+        assert!(!r.ok);
+        assert_eq!(r.failed.as_deref(), Some("P02-01"));
+        let o = r.results.last().unwrap();
+        assert_eq!(o.code, "P02-01");
+        assert!(o.written);
+        assert_eq!(o.after, o.before);
+        assert_eq!(r.not_attempted, vec!["P02-03".to_string()]);
+
+        // With baselines for one axis only, the check cannot tell axes apart: nothing is written.
+        let backups = || std::fs::read_dir(dir.join("backups")).unwrap().count();
+        let n = backups();
+        let only_x = vec![baselines[0].clone()];
+        req.baselines = Some(&only_x);
+        req.items = parse_assignments(schema, &["P02-00=123.5".into()], opts).unwrap();
+        let e = guarded_write(&mut d, &req, |_, _| {}).unwrap_err().to_string();
+        assert!(e.contains("cannot tell axis X"), "{e}");
+        assert_eq!(backups(), n, "a refused write must not save a backup");
+
+        // A parameter that changes only with the servo off: refused before the backup while the servo is on.
+        req.baselines = Some(&baselines);
+        let p = schema
+            .real()
+            .find(|p| {
+                p.needs_servo_off()
+                    && !p.needs_power_cycle()
+                    && p.max > p.min
+                    && Drive::check_write(p, WriteOptions::default()).is_ok()
+            })
+            .unwrap();
+        let now = d.read_param(p).unwrap();
+        let v = if p.value_of(now) < p.max { now.wrapping_add(1) } else { now.wrapping_sub(1) };
+        req.items = vec![(p, v)];
+        d.link.write_one(crate::monitor::SERVO_ENABLE, 1).unwrap();
+        let e = guarded_write(&mut d, &req, |_, _| {}).unwrap_err().to_string();
+        assert!(e.contains("servo off"), "{e}");
+        assert_eq!(backups(), n, "a refused write must not save a backup");
+        d.link.write_one(crate::monitor::SERVO_ENABLE, 0).unwrap();
+        assert!(guarded_write(&mut d, &req, |_, _| {}).unwrap().ok);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

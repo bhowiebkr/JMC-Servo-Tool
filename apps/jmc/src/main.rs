@@ -104,7 +104,7 @@ enum Cmd {
     },
     /// Servo on, fault and warning flags, active alarm codes.
     Status,
-    /// Clear the drive's alarm. If the servo is still enabled it switches back on.
+    /// Clear the drive's alarm. If the servo is still enabled it switches back on. Sent once, never retried.
     ResetAlarm {
         /// Confirm the reset.
         #[arg(long)]
@@ -174,6 +174,7 @@ struct WriteArgs {
     #[arg(long)]
     axis: String,
     /// Also save to EEPROM (address bit 15, not yet confirmed on these drives). Needs --yes.
+    /// Parameters that apply only after a power cycle need it: a power cycle clears RAM.
     #[arg(long)]
     save: bool,
     /// Confirm an EEPROM save.

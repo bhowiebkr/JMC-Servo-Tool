@@ -7,7 +7,7 @@
 # Values are raw register integers: display value x 10^decimals.
 # min/max left out = the full 16-bit range. default left out = none known.
 # applies: now | power-cycle | read-only | unspecified
-# change:  any | servo-off (advisory)
+# change:  any | servo-off (the tool refuses the write while the drive reports the servo on)
 # access:  user | motor | factory (motor and factory are protected)
 # Address = group x 100 + index.
 
@@ -303,7 +303,7 @@ max = 3
 default = 0
 applies = "power-cycle"
 change = "servo-off"
-brief = "The baud rate of the RS232 port that connects to a PC. A wrong value stops the PC link. Set the same rate in the PC software."
+brief = "The baud rate of the RS232 port that connects to a PC. A wrong value stops the PC link. Set the same rate in the PC software. JMC's PC tool gives 9600 bit/s as the factory value, but the manual gives 57600 bit/s."
 choices = [
   { value = 0, label = "9600 bit/s" },
   { value = 1, label = "19200 bit/s" },
@@ -386,7 +386,7 @@ max = 65535
 default = 0
 applies = "power-cycle"
 change = "servo-off"
-brief = "The bit rate of the CAN bus. All devices on the bus must use the same rate. The value 1 is listed as 120 kbit/s, which is not a standard rate."
+brief = "The bit rate of the CAN bus. All devices on the bus must use the same rate. The value 1 is listed as 120 kbit/s, which is not a standard rate. Only the values 0 to 7 select a rate."
 choices = [
   { value = 0, label = "12.5 kbit/s" },
   { value = 1, label = "120 kbit/s (unverified)" },

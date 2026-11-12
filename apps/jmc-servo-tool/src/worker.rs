@@ -221,10 +221,11 @@ fn run(rx: &Receiver<Cmd>, out: &Out) {
                 }
             }
             Cmd::Monitor(Some(interval)) => {
-                if drive.is_none() {
+                let Some(d) = drive.as_mut() else {
                     out.error("monitor", "not connected");
                     continue;
-                }
+                };
+                d.forget_monitor_layout();
                 let now = Instant::now();
                 monitor = Some(Monitor { interval, start: now, next: now, failures: 0 });
             }

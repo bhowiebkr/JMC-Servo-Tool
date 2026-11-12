@@ -90,7 +90,7 @@ pub struct ParamDef {
     /// Factory value in raw units, when the table has one.
     pub default: Option<i64>,
     pub applies: Applies,
-    /// Change the value only with the servo off. Advisory: the tool warns, it does not refuse.
+    /// Change the value only with the servo off. A write is refused while the drive reports the servo on.
     pub servo_off: bool,
     pub access: Access,
     /// A spare register: not used and no function, but it reads as a value.
@@ -162,6 +162,10 @@ impl ParamDef {
                 self.format_value(self.min),
                 self.format_value(self.max)
             )));
+        }
+        // The choices list every value that has a function (P00-27 has 0 to 7 in a range up to 65535).
+        if !self.choices.is_empty() && !self.choices.iter().any(|c| c.value == v) {
+            return Err(Error::Value(format!("{} = {} is not one of the listed values", self.code, self.format(raw))));
         }
         Ok(())
     }
@@ -667,5 +671,23 @@ mod tests {
         let raw = p.parse_raw("-1").unwrap();
         assert_eq!(raw, 0xFFFF);
         assert_eq!(p.format(raw), "-1");
+    }
+
+    #[test]
+    fn choices_limit_values_and_known_defaults_outside_range() {
+        let s = Schema::model512();
+        let p = s.get("P00-27").unwrap();
+        assert!(p.check_range(7).is_ok());
+        assert!(matches!(p.check_range(8), Err(Error::Value(_))));
+        for p in s.real() {
+            for c in &p.choices {
+                assert!(c.value >= p.min && c.value <= p.max, "{} choice {}", p.code, c.value);
+            }
+        }
+        // Factory values outside their own range: motor data that the encoder fills in, and P05-07.
+        // A new one must be checked and described before it joins this list.
+        let out: Vec<&str> =
+            s.real().filter(|p| p.default.is_some_and(|d| d < p.min || d > p.max)).map(|p| p.code.as_str()).collect();
+        assert_eq!(out, ["P00-01", "P00-02", "P00-03", "P00-04", "P00-05", "P05-07"]);
     }
 }

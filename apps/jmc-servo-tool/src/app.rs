@@ -343,13 +343,9 @@ impl App {
             return Some("Stop the live monitor first.".into());
         }
         if let Some(id) = &self.identify
-            && !id.consistent_with(&self.settings.axis)
+            && let Some(why) = id.refusal(&self.settings.axis)
         {
-            return Some(format!(
-                "This drive does not look like axis {}: best match is {}.",
-                self.settings.axis,
-                if id.tied.is_empty() { "nothing".into() } else { id.tied.join("/") }
-            ));
+            return Some(format!("Axis check: {why}."));
         }
         None
     }
@@ -448,6 +444,13 @@ impl App {
                     for n in &o.notes {
                         self.warn(format!("{}: {n}", o.code));
                     }
+                }
+                if let Some(code) = &r.failed
+                    && !r.results.iter().any(|o| &o.code == code)
+                {
+                    // The value may or may not have reached the drive.
+                    self.values.raw.remove(code);
+                    self.values.unread.insert(code.clone(), "unknown after a failed write: read the drive again".into());
                 }
                 if let Some(err) = &r.error {
                     self.error(format!("Write failed: {err}"));

@@ -22,7 +22,8 @@ fn temp_dir(name: &str) -> PathBuf {
     d
 }
 
-/// A baseline folder holding the simulated drive's factory values as axis X.
+/// A baseline folder holding the simulated drive's factory values as axis X, and axis Z with two
+/// other values. The axis check needs a second axis that matches the drive less well.
 fn sim_baselines(dir: &Path) {
     let schema = Schema::model512();
     let mut d = Drive::new(Link::new(Box::new(SimDrive::new(schema)), 1), schema);
@@ -31,6 +32,14 @@ fn sim_baselines(dir: &Path) {
     s.axis = Some("X".into());
     std::fs::create_dir_all(dir).unwrap();
     s.save(&dir.join("X-test.json")).unwrap();
+    let mut z = all.values.clone();
+    for code in ["P02-01", "P02-03"] {
+        let v = z.get_mut(code).unwrap();
+        *v = v.wrapping_add(1);
+    }
+    let mut s = Snapshot::from_raw(schema, "test", &z);
+    s.axis = Some("Z".into());
+    s.save(&dir.join("Z-other.json")).unwrap();
 }
 
 fn frame(ctx: &egui::Context, app: &mut App) {
@@ -79,7 +88,7 @@ fn connects_reads_and_writes_through_the_window() {
     let dir = temp_dir("write");
     sim_baselines(&dir.join("baselines"));
     let (ctx, mut app) = sim_app(&dir);
-    assert!(app.baselines_note.contains("1 baselines: X"), "{}", app.baselines_note);
+    assert!(app.baselines_note.contains("2 baselines: X, Z"), "{}", app.baselines_note);
     connect(&ctx, &mut app);
     assert!(app.values.raw.len() > 400, "read {} values", app.values.raw.len());
     let id = app.identify.as_ref().expect("identification after reading");
@@ -89,8 +98,8 @@ fn connects_reads_and_writes_through_the_window() {
     let def = schema.get("P02-00").unwrap();
     app.select(def);
     assert!(app.write_block(def).unwrap().contains("Choose the axis"));
-    app.settings.axis = "Z".into();
-    assert!(app.write_block(def).unwrap().contains("No baseline for axis Z"));
+    app.settings.axis = "YL".into();
+    assert!(app.write_block(def).unwrap().contains("No baseline for axis YL"));
     app.settings.axis = "X".into();
     assert_eq!(app.write_block(def), None);
     app.edit_text = "123.4".into();

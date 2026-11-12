@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::error::{Error, Result};
 use crate::link::Link;
-use crate::monitor::{self, Sample, Status};
+use crate::monitor::{self, AbsLayout, Sample, Status};
 use crate::params::{Access, ParamDef, Schema};
 use crate::rtu::SAVE_BIT;
 use crate::snapshot::Snapshot;
@@ -48,6 +48,20 @@ pub struct WriteOutcome {
     pub notes: Vec<String>,
 }
 
+/// A write that failed. `outcome` is set when the value was sent and read back, so it shows what
+/// the drive holds now.
+#[derive(Debug)]
+pub struct WriteFailure {
+    pub error: Error,
+    pub outcome: Option<Box<WriteOutcome>>,
+}
+
+impl From<Error> for WriteFailure {
+    fn from(error: Error) -> Self {
+        WriteFailure { error, outcome: None }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ReadAll {
     pub values: BTreeMap<String, u16>,
@@ -60,11 +74,13 @@ pub struct Drive {
     pub link: Link,
     schema: &'static Schema,
     last_write: Option<Instant>,
+    /// From P00-29, read at the first sample of the live monitor.
+    abs_layout: Option<AbsLayout>,
 }
 
 impl Drive {
     pub fn new(link: Link, schema: &'static Schema) -> Drive {
-        Drive { link, schema, last_write: None }
+        Drive { link, schema, last_write: None, abs_layout: None }
     }
 
     pub fn schema(&self) -> &'static Schema {
@@ -135,9 +151,21 @@ impl Drive {
         if def.reserved {
             return Err(Error::Refused(format!("{} is a reserved register with no function", def.code)));
         }
-        if opts.allow_protected {
-            return Ok(());
+        if !opts.allow_protected {
+            Self::check_protected(def)?;
         }
+        // A power cycle clears RAM, so this write could never take effect.
+        if opts.persist == Persist::Ram && def.needs_power_cycle() {
+            return Err(Error::Refused(format!(
+                "{} ({}) takes effect only after a power cycle, which clears RAM, so a RAM write does nothing; it needs an EEPROM save",
+                def.code, def.name
+            )));
+        }
+        Ok(())
+    }
+
+    /// The parameters that need `allow_protected`.
+    fn check_protected(def: &ParamDef) -> Result<()> {
         if def.protected() {
             let what = if def.access == Access::Motor { "motor data" } else { "a factory parameter" };
             return Err(Error::Refused(format!("{} ({}) is {what}; it needs allow-protected", def.code, def.name)));
@@ -162,9 +190,20 @@ impl Drive {
 
     /// Write one parameter: check the rules and range, read the old value, write, read back.
     pub fn write_param(&mut self, def: &ParamDef, raw: u16, opts: WriteOptions) -> Result<WriteOutcome> {
+        self.write_param_detailed(def, raw, opts).map_err(|f| f.error)
+    }
+
+    /// As `write_param`, but a read-back mismatch keeps the outcome with the value read back.
+    pub fn write_param_detailed(
+        &mut self,
+        def: &ParamDef,
+        raw: u16,
+        opts: WriteOptions,
+    ) -> std::result::Result<WriteOutcome, WriteFailure> {
         Self::check_write(def, opts)?;
         let before = self.read_param(def)?;
-        if before != raw {
+        // An unchanged value may sit outside the table's range. It is still checked before it goes to EEPROM.
+        if before != raw || opts.persist == Persist::Eeprom {
             def.check_range(raw)?;
         }
         let mut notes = Vec::new();
@@ -188,6 +227,12 @@ impl Drive {
         if before == raw && opts.persist == Persist::Ram {
             return Ok(outcome);
         }
+        if def.needs_servo_off() && self.status()?.servo_on {
+            return Err(WriteFailure::from(Error::Refused(format!(
+                "{} ({}) changes only with the servo off, and the servo is on: switch the servo off first",
+                def.code, def.name
+            ))));
+        }
         if let Some(t) = self.last_write {
             let since = t.elapsed();
             if since < WRITE_GAP {
@@ -205,12 +250,9 @@ impl Drive {
         outcome.after = def.format(after);
         outcome.written = true;
         if after != raw {
-            return Err(Error::BadReply(format!(
-                "{} reads back {} after writing {}",
-                def.code,
-                def.format(after),
-                def.format(raw)
-            )));
+            let error =
+                Error::BadReply(format!("{} reads back {} after writing {}", def.code, def.format(after), def.format(raw)));
+            return Err(WriteFailure { error, outcome: Some(Box::new(outcome)) });
         }
         Ok(outcome)
     }
@@ -221,17 +263,37 @@ impl Drive {
         Status::decode(&s, &a)
     }
 
+    /// One read of the monitor block. The first sample also reads P00-29, which tells which register
+    /// holds the absolute turn count. If that read fails, the factory layout is used, and the next
+    /// sample tries again.
     pub fn sample(&mut self) -> Result<Sample> {
+        let layout = match self.abs_layout {
+            Some(l) => l,
+            None => {
+                let schema = self.schema;
+                match schema.get("P00-29").and_then(|p| self.read_param(p)) {
+                    Ok(v) => *self.abs_layout.insert(AbsLayout::from_p00_29(v)),
+                    Err(_) => AbsLayout::default(),
+                }
+            }
+        };
         let r = self.link.read(monitor::MONITOR_ADDR, monitor::MONITOR_LEN)?;
-        Sample::decode(&r)
+        Sample::decode(&r, layout)
+    }
+
+    /// Read P00-29 again at the next sample. Call it when a monitor run starts: P00-29 applies after
+    /// a power cycle, which can happen while the port stays open.
+    pub fn forget_monitor_layout(&mut self) {
+        self.abs_layout = None;
     }
 
     pub fn identity(&mut self) -> Result<Vec<u16>> {
         self.link.read(monitor::IDENTITY_ADDR, 5)
     }
 
+    /// One try only: if the reply is lost, a second reset could clear a new alarm that the user has not seen.
     pub fn reset_alarm(&mut self) -> Result<()> {
-        self.link.write_one(monitor::ALARM_RESET, 1)
+        self.link.write_one_once(monitor::ALARM_RESET, 1)
     }
 }
 
@@ -305,6 +367,20 @@ mod tests {
         // The drive refusing a write surfaces as an exception.
         sim.state().reject_writes.push(gain.address);
         assert!(matches!(d.write_param(gain, 9000, WriteOptions::default()), Err(Error::Exception { code: 3, .. })));
+        // A read-back mismatch keeps the value that the drive holds.
+        sim.state().reject_writes.clear();
+        sim.state().ignore_writes.push(gain.address);
+        let f = d.write_param_detailed(gain, 9000, WriteOptions::default()).unwrap_err();
+        assert!(matches!(f.error, Error::BadReply(_)), "{}", f.error);
+        let o = f.outcome.unwrap();
+        assert!(o.written);
+        assert_eq!((o.requested.as_str(), o.after.as_str()), ("900.0", "812.5"));
+        // An unchanged value outside the range is not saved to EEPROM.
+        let p = s.real().find(|p| !p.signed && p.max < 65535 && Drive::check_write(p, WriteOptions::default()).is_ok()).unwrap();
+        sim.set_param(p.address, (p.max + 1) as u16);
+        let eeprom = WriteOptions { persist: Persist::Eeprom, allow_protected: false };
+        assert!(matches!(d.write_param(p, (p.max + 1) as u16, eeprom), Err(Error::Value(_))));
+        assert!(!d.write_param(p, (p.max + 1) as u16, WriteOptions::default()).unwrap().written);
     }
 
     #[test]
@@ -320,6 +396,43 @@ mod tests {
         assert_eq!(st.alarms, vec![0x0101]);
         d.reset_alarm().unwrap();
         assert!(!d.status().unwrap().fault);
+        // The reset is not sent again when its reply is lost.
+        let n = sim.state().log.len();
+        sim.push_fault(crate::sim::Fault::DropReply);
+        assert!(d.reset_alarm().is_err());
+        assert_eq!(sim.state().log.len(), n + 1);
         assert_eq!(d.sample().unwrap().bus_v, 310);
+        // P00-29 tells which register holds the turns. The factory value 1 puts them in 2126.
+        sim.state().live.insert(2125, 7);
+        sim.state().live.insert(2126, 3);
+        assert_eq!(d.sample().unwrap().abs_turns, 3);
+        let p = d.schema().get("P00-29").unwrap();
+        sim.set_param(p.address, 0);
+        assert_eq!(d.sample().unwrap().abs_turns, 3, "P00-29 is read once for each monitor run");
+        d.forget_monitor_layout();
+        assert_eq!(d.sample().unwrap().abs_turns, 7);
+    }
+
+    #[test]
+    fn servo_off_parameters_need_the_servo_off() {
+        let (_sim, mut d) = drive();
+        let s = d.schema();
+        let p = s
+            .real()
+            .find(|p| {
+                p.needs_servo_off()
+                    && !p.needs_power_cycle()
+                    && p.max > p.min
+                    && Drive::check_write(p, WriteOptions::default()).is_ok()
+            })
+            .unwrap();
+        let now = d.read_param(p).unwrap();
+        let v = if p.value_of(now) < p.max { now.wrapping_add(1) } else { now.wrapping_sub(1) };
+        d.link.write_one(monitor::SERVO_ENABLE, 1).unwrap();
+        let e = d.write_param(p, v, WriteOptions::default()).unwrap_err();
+        assert!(matches!(e, Error::Refused(_)) && e.to_string().contains("servo off"), "{e}");
+        assert_eq!(d.read_param(p).unwrap(), now);
+        d.link.write_one(monitor::SERVO_ENABLE, 0).unwrap();
+        assert!(d.write_param(p, v, WriteOptions::default()).unwrap().written);
     }
 }

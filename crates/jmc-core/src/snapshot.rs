@@ -171,6 +171,13 @@ pub struct Candidate {
     pub compared: usize,
 }
 
+/// A baseline that `identify` could not compare with the drive.
+#[derive(Debug, Clone, Serialize)]
+pub struct SkippedBaseline {
+    pub file: PathBuf,
+    pub reason: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Identification {
     /// Best-matching axis, if one axis matches better than every other.
@@ -178,6 +185,52 @@ pub struct Identification {
     /// Axes tied for the best match (YL and YR can be identical).
     pub tied: Vec<String>,
     pub candidates: Vec<Candidate>,
+    pub skipped: Vec<SkippedBaseline>,
+    /// Parameters that differ from the factory values, to find a drive that was reset.
+    pub factory_differing: Option<usize>,
+}
+
+impl Identification {
+    /// The smallest number of differences among the baselines of `axis`.
+    fn best_of(&self, axis: &str) -> Option<usize> {
+        self.candidates
+            .iter()
+            .filter(|c| c.axis.as_deref().is_some_and(|a| a.eq_ignore_ascii_case(axis)))
+            .map(|c| c.differing)
+            .min()
+    }
+
+    /// Why a write to a drive that the user calls `axis` must stop, if it must.
+    pub fn refusal(&self, axis: &str) -> Option<String> {
+        let name = axis.to_ascii_uppercase();
+        let Some(own) = self.best_of(axis) else {
+            return Some(format!("no usable baseline for axis {name}"));
+        };
+        if !self.consistent_with(axis) {
+            let best = if self.tied.is_empty() { "nothing".to_string() } else { self.tied.join("/") };
+            return Some(format!("this drive does not look like axis {name}: best match is {best}"));
+        }
+        // The check only ranks the baselines. It means something only if it rules out another axis.
+        let others_worse = self
+            .candidates
+            .iter()
+            .filter_map(|c| c.axis.as_deref())
+            .filter(|a| !a.eq_ignore_ascii_case(axis))
+            .any(|a| self.best_of(a).is_some_and(|d| d > own));
+        if !others_worse {
+            return Some(format!(
+                "no baseline of another axis is a worse match, so the check cannot tell axis {name} from the other axes: save a baseline of every axis"
+            ));
+        }
+        if let Some(f) = self.factory_differing
+            && f < own
+        {
+            return Some(format!(
+                "this drive is closer to the factory values ({f} differ) than to the baseline of axis {name} ({own} differ), so it may have been reset: if that was on purpose, save a new baseline of axis {name}"
+            ));
+        }
+        None
+    }
 }
 
 impl Identification {
@@ -210,29 +263,32 @@ pub fn load_baselines(dir: &Path) -> Result<Vec<(PathBuf, Snapshot)>> {
 
 /// Rank baselines by how many parameters differ from the drive's current values.
 pub fn identify(schema: &Schema, current: &BTreeMap<String, u16>, baselines: &[(PathBuf, Snapshot)]) -> Identification {
-    let mut candidates: Vec<Candidate> = baselines
-        .iter()
-        .filter_map(|(path, s)| {
-            let base = s.raw(schema).ok()?;
-            let mut compared = 0;
-            let mut differing = 0;
-            for (code, v) in &base {
-                if let Some(c) = current.get(code) {
-                    compared += 1;
-                    if c != v {
-                        differing += 1;
-                    }
+    let mut candidates: Vec<Candidate> = Vec::new();
+    let mut skipped = Vec::new();
+    for (path, s) in baselines {
+        let base = match s.raw(schema) {
+            Ok(b) => b,
+            Err(e) => {
+                skipped.push(SkippedBaseline { file: path.clone(), reason: e.to_string() });
+                continue;
+            }
+        };
+        let mut compared = 0;
+        let mut differing = 0;
+        for (code, v) in &base {
+            if let Some(c) = current.get(code) {
+                compared += 1;
+                if c != v {
+                    differing += 1;
                 }
             }
-            (compared > 0).then(|| Candidate {
-                axis: s.axis.clone(),
-                file: path.clone(),
-                taken_utc: s.taken_utc.clone(),
-                differing,
-                compared,
-            })
-        })
-        .collect();
+        }
+        if compared == 0 {
+            skipped.push(SkippedBaseline { file: path.clone(), reason: "no parameter in common with the drive".into() });
+            continue;
+        }
+        candidates.push(Candidate { axis: s.axis.clone(), file: path.clone(), taken_utc: s.taken_utc.clone(), differing, compared });
+    }
     candidates.sort_by_key(|c| c.differing);
     // Best score per axis.
     let mut best: BTreeMap<String, usize> = BTreeMap::new();
@@ -244,7 +300,23 @@ pub fn identify(schema: &Schema, current: &BTreeMap<String, u16>, baselines: &[(
     }
     let top = best.values().copied().min();
     let tied: Vec<String> = best.iter().filter(|(_, v)| Some(**v) == top).map(|(k, _)| k.clone()).collect();
-    Identification { axis: (tied.len() == 1).then(|| tied[0].clone()), tied, candidates }
+    let mut factory_compared = 0;
+    let mut factory_differing = 0;
+    for p in schema.real() {
+        if let (Some(d), Some(c)) = (p.default, current.get(&p.code)) {
+            factory_compared += 1;
+            if p.value_of(*c) != d {
+                factory_differing += 1;
+            }
+        }
+    }
+    Identification {
+        axis: (tied.len() == 1).then(|| tied[0].clone()),
+        tied,
+        candidates,
+        skipped,
+        factory_differing: (factory_compared > 0).then_some(factory_differing),
+    }
 }
 
 /// Current UTC time as `2026-11-11T08:15:30Z`.
@@ -317,5 +389,39 @@ mod tests {
         let id = identify(schema, &x.raw(schema).unwrap(), &[("a".into(), y), ("b".into(), yr), ("c".into(), z)]);
         assert_eq!(id.axis, None);
         assert_eq!(id.tied, vec!["YL".to_string(), "YR".to_string()]);
+    }
+
+    #[test]
+    fn refusal_needs_another_axis_and_finds_a_reset_drive() {
+        let s = Schema::model512();
+        let factory: BTreeMap<String, u16> =
+            s.real().filter_map(|p| Some((p.code.clone(), p.to_raw(p.default?).ok()?))).collect();
+        let tuned = |codes: &[&str]| {
+            let mut v = factory.clone();
+            for c in codes {
+                let r = v.get_mut(*c).unwrap();
+                *r = r.wrapping_add(1);
+            }
+            v
+        };
+        let snap = |axis: &str, v: &BTreeMap<String, u16>| {
+            let mut x = Snapshot::from_raw(s, "test", v);
+            x.axis = Some(axis.into());
+            (PathBuf::from(format!("{axis}.json")), x)
+        };
+        let x = tuned(&["P01-03", "P01-04", "P02-03"]);
+        let z = tuned(&["P02-00", "P02-01", "P03-09", "P03-15"]);
+        // The drive is the X baseline and Z is a worse match: the write can go ahead.
+        let id = identify(s, &x, &[snap("X", &x), snap("Z", &z)]);
+        assert_eq!(id.refusal("x"), None);
+        assert!(id.refusal("z").unwrap().contains("best match is X"));
+        assert!(id.refusal("YL").unwrap().contains("no usable baseline"));
+        // One axis only: nothing to tell it from.
+        let id = identify(s, &x, &[snap("X", &x)]);
+        assert!(id.refusal("x").unwrap().contains("cannot tell"));
+        // A drive at the factory values is closer to them than to its baseline.
+        let id = identify(s, &factory, &[snap("X", &x), snap("Z", &z)]);
+        assert_eq!(id.factory_differing, Some(0));
+        assert!(id.refusal("x").unwrap().contains("factory"));
     }
 }

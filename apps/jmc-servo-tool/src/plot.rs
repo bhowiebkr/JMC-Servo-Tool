@@ -25,7 +25,7 @@ pub const CHANNELS: &[Channel] = &[
     Channel {
         key: "following_error",
         title: "Following error",
-        unit: "pulses",
+        unit: "command pulses",
         series: &[Series { label: "error", color: theme::ACCENT, get: |s| f64::from(s.following_error) }],
     },
     Channel {
@@ -55,7 +55,7 @@ pub const CHANNELS: &[Channel] = &[
     Channel {
         key: "position",
         title: "Position",
-        unit: "pulses",
+        unit: "command pulses",
         series: &[
             Series { label: "command", color: theme::BLUE, get: |s| f64::from(s.pos_cmd) },
             Series { label: "feedback", color: theme::ACCENT, get: |s| f64::from(s.pos_fb) },

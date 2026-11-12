@@ -86,7 +86,7 @@ pub const DEFAULT_BAUD: u32 = 57600;
 pub fn probe_candidates() -> Vec<(u32, Framing)> {
     let mut v = Vec::new();
     for baud in [57600, 115200, 9600, 38400, 19200] {
-        for framing in [Framing::Even1, Framing::None2, Framing::None1] {
+        for framing in [Framing::Even1, Framing::None2, Framing::None1, Framing::Odd1] {
             v.push((baud, framing));
         }
     }
@@ -334,7 +334,18 @@ impl Link {
         self.request(&Request::WriteOne { addr, value }).map(|_| ())
     }
 
+    /// As `write_one`, but a timeout or a garbled reply is not retried. For commands that must not run twice.
+    pub fn write_one_once(&mut self, addr: u16, value: u16) -> Result<()> {
+        let retries = std::mem::replace(&mut self.retries, 0);
+        let r = self.request(&Request::WriteOne { addr, value });
+        self.retries = retries;
+        r.map(|_| ())
+    }
+
     pub fn write_many(&mut self, addr: u16, values: &[u16]) -> Result<()> {
+        if usize::from(addr) + values.len() > 0x1_0000 {
+            return Err(Error::Value(format!("address range {addr}+{} overflows", values.len())));
+        }
         for (k, chunk) in values.chunks(123).enumerate() {
             let a = addr + (k * 123) as u16;
             self.request(&Request::WriteMany { addr: a, values: chunk.to_vec() })?;

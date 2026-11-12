@@ -16,16 +16,19 @@ const WINDOWS_S: [f64; 4] = [5.0, 10.0, 30.0, 60.0];
 /// The samples as CSV, one row per sample, time in seconds from the start.
 pub fn samples_csv(samples: &VecDeque<(f64, Sample)>) -> String {
     let mut out = String::from(
-        "t_s,pos_cmd,pos_fb,following_error,speed_cmd_rpm,speed_rpm,torque_cmd_pct,torque_pct,load_pct,\
+        "t_s,pos_cmd,pos_fb,following_error,pos_cmd_counts,pos_fb_counts,following_error_counts,speed_cmd_rpm,speed_rpm,torque_cmd_pct,torque_pct,load_pct,\
          peak_torque_pct,regen_pct,io,angle_deg,abs_turns,abs_pos,bus_v,ain_speed_v,ain_torque_v\n",
     );
     for (t, s) in samples {
         let _ = writeln!(
             out,
-            "{t:.4},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{t:.4},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             s.pos_cmd,
             s.pos_fb,
             s.following_error,
+            s.pos_cmd_counts,
+            s.pos_fb_counts,
+            s.following_error_counts,
             s.speed_cmd_rpm,
             s.speed_rpm,
             s.torque_cmd_pct,
@@ -157,11 +160,16 @@ impl App {
 }
 
 fn readout_grid(ui: &mut egui::Ui, s: &Sample) {
-    let items: [(&str, String); 12] = [
-        ("Position command", s.pos_cmd.to_string()),
-        ("Position feedback", s.pos_fb.to_string()),
-        ("Following error", s.following_error.to_string()),
+    // Command pulses are the unit of P03-15 (× 10); encoder counts are the unit of P03-06.
+    let items: [(&str, String); 16] = [
+        ("Position command", format!("{} pulses", s.pos_cmd)),
+        ("Position feedback", format!("{} pulses", s.pos_fb)),
+        ("Following error", format!("{} pulses", s.following_error)),
         ("Angle", format!("{:.1}°", s.angle_deg)),
+        ("Command (encoder)", format!("{} counts", s.pos_cmd_counts)),
+        ("Feedback (encoder)", format!("{} counts", s.pos_fb_counts)),
+        ("Error (encoder)", format!("{} counts", s.following_error_counts)),
+        ("Torque command", format!("{:.1} %", s.torque_cmd_pct)),
         ("Speed command", format!("{} rpm", s.speed_cmd_rpm)),
         ("Speed", format!("{} rpm", s.speed_rpm)),
         ("Torque", format!("{:.1} %", s.torque_pct)),
@@ -171,7 +179,7 @@ fn readout_grid(ui: &mut egui::Ui, s: &Sample) {
         ("Bus", format!("{} V", s.bus_v)),
         ("I/O", format!("{:016b}", s.io)),
     ];
-    // Four pairs a row: three rows instead of four.
+    // Four pairs a row.
     egui::Grid::new("readout").num_columns(8).spacing([14.0, 2.0]).min_col_width(40.0).show(ui, |ui| {
         for (i, (k, v)) in items.iter().enumerate() {
             ui.label(RichText::new(*k).small().color(theme::TEXT_DIM));

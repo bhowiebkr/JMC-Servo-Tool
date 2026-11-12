@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use crate::link::Transport;
+use crate::monitor;
 use crate::params::Schema;
 use crate::rtu::{crc16, Request, SAVE_BIT};
 
@@ -39,6 +40,8 @@ pub struct SimState {
     pub hidden: Vec<u16>,
     /// Addresses whose writes are refused with exception 03 (drive-side range check).
     pub reject_writes: Vec<u16>,
+    /// Addresses that acknowledge a write but keep their old value.
+    pub ignore_writes: Vec<u16>,
     out: Vec<u8>,
 }
 
@@ -61,7 +64,7 @@ impl SimDrive {
         for a in 2020..2032 {
             live.insert(a, 0);
         }
-        for a in 2106..=2134 {
+        for a in monitor::MONITOR_ADDR..monitor::MONITOR_ADDR + monitor::MONITOR_LEN {
             live.insert(a, 0);
         }
         for a in 2150..2155 {
@@ -78,6 +81,7 @@ impl SimDrive {
             faults: VecDeque::new(),
             hidden: Vec::new(),
             reject_writes: Vec::new(),
+            ignore_writes: Vec::new(),
             out: Vec::new(),
         })))
     }
@@ -140,6 +144,9 @@ impl SimState {
         let a = addr & !SAVE_BIT;
         if self.reject_writes.contains(&a) {
             return Err(3);
+        }
+        if self.ignore_writes.contains(&a) {
+            return Ok(());
         }
         if self.ram.contains_key(&a) && !self.hidden.contains(&a) {
             self.ram.insert(a, value);
