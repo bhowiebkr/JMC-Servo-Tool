@@ -4,6 +4,14 @@ All notable changes to this project are listed here. The format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-12
+
+A fix for a crash at start on some Intel GPUs.
+
+### Fixed
+
+- The window closed at start on some Intel GPUs, in Intel's Vulkan driver ([#1](https://github.com/bhowiebkr/JMC-Servo-Tool/issues/1)). On Windows, the window now uses DX12. Set `WGPU_BACKEND` to choose another backend. With v0.3.0, set `WGPU_BACKEND=dx12` to prevent the crash.
+
 ## [0.3.0] - 2026-11-12
 
 Fixes from a review of the tool, the parameter table and the help pages. Tested against a simulated drive only.
@@ -73,7 +81,8 @@ First public version. Tested against a simulated drive and real JMC 2.4.3 export
 - Simulated drive for every command and for the window.
 - Snapshot file format `jmc-servo-tool/snapshot/1`.
 
-[Unreleased]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bhowiebkr/JMC-Servo-Tool/releases/tag/v0.1.0

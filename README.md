@@ -119,6 +119,7 @@ Errors go to stderr as `{"error": "..."}` with exit code 1.
 | `JMC_PORT` | Default for `--port` |
 | `JMC_BASELINES` | Folder of baseline snapshots, used by `write` and `identify` |
 | `JMC_BACKUP_DIR` | Where `write` saves the snapshot that it takes first (default `%LOCALAPPDATA%\JMC-Servo-Tool\backups`) |
+| `WGPU_BACKEND` | Graphics backend of the window: `dx12` (the default on Windows), `vulkan` or `gl` |
 
 ## Safety
 

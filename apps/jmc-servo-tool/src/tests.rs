@@ -83,6 +83,21 @@ fn connect(ctx: &egui::Context, app: &mut App) {
     assert!(ok, "no connection; log:\n{}", log_text(app));
 }
 
+#[cfg(windows)]
+#[test]
+fn window_uses_dx12_on_windows() {
+    use eframe::egui_wgpu::{WgpuSetup, wgpu::Backends};
+    let options = crate::native_options();
+    let WgpuSetup::CreateNew(setup) = &options.wgpu_options.wgpu_setup else {
+        panic!("the window must create its own wgpu instance");
+    };
+    let want = Backends::from_env().unwrap_or(Backends::DX12);
+    assert_eq!(setup.instance_descriptor.backends, want);
+    if std::env::var_os("WGPU_BACKEND").is_none() {
+        assert_eq!(setup.instance_descriptor.backends, Backends::DX12);
+    }
+}
+
 #[test]
 fn connects_reads_and_writes_through_the_window() {
     let dir = temp_dir("write");
